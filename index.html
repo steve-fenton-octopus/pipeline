@@ -165,6 +165,15 @@
             animation: pulse 1.5s infinite;
         }
 
+        #score-display {
+            font-size: 2rem;
+            margin-top: 20px;
+            color: #fbbf24;
+            font-family: monospace;
+            text-shadow: 0 0 10px #fbbf24;
+            display: none;
+        }
+
     </style>
 </head>
 <body>
@@ -183,11 +192,15 @@
             <div id="level-display" class="status-chip" style="margin-top: 20px; border-color: rgba(255,255,255,0.2)">
                 Level <span id="level-num" style="margin-left: 5px; color: var(--player-glow)">1</span>
             </div>
+            <div id="high-score-panel" class="status-chip" style="margin-top: 10px; border-color: rgba(251, 191, 36, 0.3); font-size: 0.8rem;">
+                🏆 Best: <span id="high-score-val" style="margin-left: 5px; color: #fbbf24">0</span>
+            </div>
         </div>
 
         <div id="victory-overlay">
             <h1>Deployment Successful</h1>
-            <p>The system is stable. Production is humming.</p>
+            <p id="victory-msg">The system is stable. Production is humming.</p>
+            <div id="score-display">Score: <span id="final-score">0</span></div>
             <div class="restart-hint">Press [Space] to Restart</div>
         </div>
 
@@ -248,7 +261,9 @@
             maze: null,
             isVictory: false,
             victoryTime: 0,
-            level: 1
+            level: 1,
+            startTime: null,
+            highScore: parseInt(localStorage.getItem('pipeline-high-score')) || 0
         };
 
         const svg = document.getElementById('game-svg');
@@ -421,6 +436,10 @@
         function updateUI() {
             const levelEl = document.getElementById('level-num');
             if (levelEl) levelEl.textContent = state.level;
+            
+            const highScoreEl = document.getElementById('high-score-val');
+            if (highScoreEl) highScoreEl.textContent = state.highScore.toLocaleString();
+
             const activeTargetCount = Math.min(state.level, 3);
 
             state.targets.forEach((t, i) => {
@@ -508,6 +527,10 @@
             const nextX = state.player.x + dx;
             const nextY = state.player.y + dy;
 
+            if (state.level === 1 && !state.startTime && (dx !== 0 || dy !== 0)) {
+                state.startTime = Date.now();
+            }
+
             if (canMoveTo(nextX, nextY)) {
                 state.player.x = nextX;
                 state.player.y = nextY;
@@ -565,6 +588,28 @@
             state.isVictory = true;
             state.victoryTime = Date.now();
             const overlay = document.getElementById('victory-overlay');
+            const h1 = overlay.querySelector('h1');
+            const scoreDisplay = document.getElementById('score-display');
+            
+            if (state.level === 3) {
+                h1.textContent = "Production Deployed!";
+                const seconds = (Date.now() - state.startTime) / 1000;
+                const score = Math.max(0, 1000000 - Math.floor(seconds * 3000));
+                
+                const finalScoreEl = document.getElementById('final-score');
+                if (finalScoreEl) finalScoreEl.textContent = score.toLocaleString();
+                if (scoreDisplay) scoreDisplay.style.display = 'block';
+                
+                if (score > state.highScore) {
+                    state.highScore = score;
+                    localStorage.setItem('pipeline-high-score', score);
+                    updateUI();
+                }
+            } else {
+                h1.textContent = `Level ${state.level} Complete`;
+                if (scoreDisplay) scoreDisplay.style.display = 'none';
+            }
+
             overlay.style.display = 'flex';
         }
 
