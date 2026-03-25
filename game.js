@@ -16,6 +16,45 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const ONE_SECOND = 1000;
 const TIME_PENALTY = 3000;
 
+// --- Audio System ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSwoosh() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+    
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function playTaDa() {
+    const playNote = (freq, start, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + start);
+        osc.stop(audioCtx.currentTime + start + duration);
+    };
+
+    playNote(523.25, 0, 0.2); // C5
+    playNote(659.25, 0.15, 0.5); // E5
+}
+
 // --- Game State ---
 const state = {
     player: { x: 50, y: 50 },
@@ -266,11 +305,15 @@ function updateUI() {
 // --- Input Handling ---
 
 // Keyboard
-window.addEventListener('keydown', e => state.keys[e.code] = true);
+window.addEventListener('keydown', e => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    state.keys[e.code] = true;
+});
 window.addEventListener('keyup', e => state.keys[e.code] = false);
 
 // Touch/Drag for Movement
 container.addEventListener('touchstart', e => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     if (state.isVictory) return;
     const touch = e.touches[0];
     state.touch.active = true;
@@ -417,6 +460,7 @@ function updatePlayer() {
         if (dist < 30) {
             currentTarget.reached = true;
             state.currentTargetIndex++;
+            playSwoosh();
             updateUI();
 
             if (state.currentTargetIndex >= activeTargetCount) {
@@ -438,6 +482,7 @@ function updatePlayer() {
 function showVictory() {
     state.isVictory = true;
     state.victoryTime = Date.now();
+    playTaDa();
     const scoreDisplay = document.getElementById('score-display');
     const accumulatedDisplay = document.getElementById('total-score-display');
 
