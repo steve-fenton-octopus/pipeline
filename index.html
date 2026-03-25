@@ -156,6 +156,15 @@
             margin-top: 20px;
         }
 
+        #victory-overlay .restart-hint {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite;
+        }
+
     </style>
 </head>
 <body>
@@ -176,6 +185,7 @@
         <div id="victory-overlay">
             <h1>Deployment Successful</h1>
             <p>The system is stable. Production is humming.</p>
+            <div class="restart-hint">Press [Space] to Restart</div>
         </div>
 
         <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
@@ -232,7 +242,9 @@
                 { id: 'prod', label: 'Production', reached: false, x: 0, y: 0 }
             ],
             currentTargetIndex: 0,
-            maze: null
+            maze: null,
+            isVictory: false,
+            victoryTime: 0
         };
 
         const svg = document.getElementById('game-svg');
@@ -454,6 +466,13 @@
         }
 
         function updatePlayer() {
+            if (state.isVictory) {
+                if (state.keys['Space'] && Date.now() - state.victoryTime > 1000) {
+                    hideVictory();
+                }
+                return;
+            }
+
             let dx = 0;
             let dy = 0;
 
@@ -518,12 +537,17 @@
         }
 
         function showVictory() {
+            state.isVictory = true;
+            state.victoryTime = Date.now();
             const overlay = document.getElementById('victory-overlay');
             overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                resetGame();
-            }, 10000);
+        }
+
+        function hideVictory() {
+            state.isVictory = false;
+            const overlay = document.getElementById('victory-overlay');
+            overlay.style.display = 'none';
+            resetGame();
         }
 
         function resetGame() {
