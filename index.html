@@ -697,7 +697,7 @@
             const scoreDisplay = document.getElementById('score-display');
             const accumulatedDisplay = document.getElementById('total-score-display');
 
-            let levelScore = 0;
+            let levelScore = 20000;
             if (state.level === 3) {
                 const seconds = (Date.now() - state.startTime) / 1000;
                 levelScore = Math.max(0, 1000000 - Math.floor(seconds * 3000));
