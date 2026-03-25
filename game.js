@@ -81,6 +81,8 @@ function startBackgroundMusic() {
 
     let index = 0;
     const playNext = () => {
+        if (!state.audio.isTunePlaying) return;
+        
         const item = melody[index];
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -98,10 +100,18 @@ function startBackgroundMusic() {
         osc.stop(audioCtx.currentTime + item.duration);
 
         index = (index + 1) % melody.length;
-        setTimeout(playNext, item.duration * 1000);
+        state.audio.timeoutId = setTimeout(playNext, item.duration * 1000);
     };
 
     playNext();
+}
+
+function stopBackgroundMusic() {
+    state.audio.isTunePlaying = false;
+    if (state.audio.timeoutId) {
+        clearTimeout(state.audio.timeoutId);
+        state.audio.timeoutId = null;
+    }
 }
 
 // --- Game State ---
@@ -131,7 +141,8 @@ const state = {
     },
     showCompass: false,
     audio: {
-        isTunePlaying: false
+        isTunePlaying: false,
+        timeoutId: null
     }
 };
 
@@ -359,7 +370,6 @@ function updateUI() {
 // Keyboard
 window.addEventListener('keydown', e => {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    startBackgroundMusic();
     state.keys[e.code] = true;
 });
 window.addEventListener('keyup', e => state.keys[e.code] = false);
@@ -367,7 +377,6 @@ window.addEventListener('keyup', e => state.keys[e.code] = false);
 // Touch/Drag for Movement
 container.addEventListener('touchstart', e => {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    startBackgroundMusic();
     if (state.isVictory) return;
     const touch = e.touches[0];
     state.touch.active = true;
@@ -474,6 +483,11 @@ function updatePlayer() {
         }
     }
 
+    // Start music on first movement
+    if (dx !== 0 || dy !== 0) {
+        startBackgroundMusic();
+    }
+
     const nextX = state.player.x + dx;
     const nextY = state.player.y + dy;
 
@@ -536,6 +550,7 @@ function updatePlayer() {
 function showVictory() {
     state.isVictory = true;
     state.victoryTime = Date.now();
+    stopBackgroundMusic();
     playTaDa();
     const scoreDisplay = document.getElementById('score-display');
     const accumulatedDisplay = document.getElementById('total-score-display');
