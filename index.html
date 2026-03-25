@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline: The Underground Maze</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --pipe-color: #334155;
+            --pipe-glow: #38bdf8;
+            --player-color: #0ea5e9;
+            --player-glow: #7dd3fc;
+            --dev-color: #22d3ee;
+            --test-color: #fbbf24;
+            --prod-color: #f472b6;
+            --ui-text: #f8fafc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            cursor: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            color: var(--ui-text);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .status-chip {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-chip.active {
+            border-color: var(--pipe-glow);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            color: rgba(248, 250, 252, 0.5);
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        #compass-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        .target-node {
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="status-dev" class="status-chip">
+                <span style="color: var(--dev-color)">■</span> Dev
+            </div>
+            <div id="status-test" class="status-chip">
+                <span style="color: var(--test-color)">■</span> Test
+            </div>
+            <div id="status-prod" class="status-chip">
+                <span style="color: var(--prod-color)">★</span> Production
+            </div>
+        </div>
+
+        <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="box-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <linearGradient id="pipe-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#334155;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#475569;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            
+            <g id="world-layer">
+                <g id="maze-layer"></g>
+                <g id="target-layer"></g>
+                <circle id="player" r="10" fill="url(#player-grad)" filter="url(#glow)"></circle>
+                <line id="compass-arrow" stroke="white" stroke-width="2" stroke-dasharray="4" opacity="0"></line>
+            </g>
+
+            <defs>
+                <radialGradient id="player-grad">
+                    <stop offset="0%" stop-color="#7dd3fc" />
+                    <stop offset="100%" stop-color="#0ea5e9" />
+                </radialGradient>
+            </defs>
+        </svg>
+
+        <div class="hint-overlay">Use Arrows to move • Hold Space for Compass</div>
+    </div>
+
+    <script>
+        const config = {
+            gridSize: 20,
+            cellSize: 100,
+            playerSpeed: 5,
+            playerRadius: 10,
+            mazeWidth: 20,
+            mazeHeight: 20
+        };
+
+        const state = {
+            player: { x: 50, y: 50 },
+            keys: {},
+            targets: [
+                { id: 'dev', label: 'Dev', reached: false, x: 0, y: 0 },
+                { id: 'test', label: 'Test', reached: false, x: 0, y: 0 },
+                { id: 'prod', label: 'Production', reached: false, x: 0, y: 0 }
+            ],
+            currentTargetIndex: 0,
+            maze: null
+        };
+
+        const svg = document.getElementById('game-svg');
+        const worldLayer = document.getElementById('world-layer');
+        const mazeLayer = document.getElementById('maze-layer');
+        const targetLayer = document.getElementById('target-layer');
+        const playerEl = document.getElementById('player');
+        const compassArrow = document.getElementById('compass-arrow');
+
+        // Maze Generation (Recursive Backtracker)
+        function generateMaze(width, height) {
+            const maze = Array.from({ length: height }, () => 
+                Array.from({ length: width }, () => ({
+                    visited: false,
+                    walls: { top: true, right: true, bottom: true, left: true }
+                }))
+            );
+
+            const stack = [];
+            const startNode = { x: 0, y: 0 };
+            maze[0][0].visited = true;
+            stack.push(startNode);
+
+            while (stack.length > 0) {
+                const current = stack[stack.length - 1];
+                const neighbors = getUnvisitedNeighbors(current, maze, width, height);
+
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    removeWall(current, next, maze);
+                    maze[next.y][next.x].visited = true;
+                    stack.push(next);
+                } else {
+                    stack.pop();
+                }
+            }
+            return maze;
+        }
+
+        function getUnvisitedNeighbors(node, maze, width, height) {
+            const neighbors = [];
+            const { x, y } = node;
+
+            if (y > 0 && !maze[y - 1][x].visited) neighbors.push({ x, y: y - 1, dir: 'top' });
+            if (x < width - 1 && !maze[y][x + 1].visited) neighbors.push({ x: x + 1, y, dir: 'right' });
+            if (y < height - 1 && !maze[y + 1][x].visited) neighbors.push({ x, y: y + 1, dir: 'bottom' });
+            if (x > 0 && !maze[y][x - 1].visited) neighbors.push({ x: x - 1, y, dir: 'left' });
+
+            return neighbors;
+        }
+
+        function removeWall(current, next, maze) {
+            const dx = next.x - current.x;
+            const dy = next.y - current.y;
+
+            if (dx === 1) {
+                maze[current.y][current.x].walls.right = false;
+                maze[next.y][next.x].walls.left = false;
+            } else if (dx === -1) {
+                maze[current.y][current.x].walls.left = false;
+                maze[next.y][next.x].walls.right = false;
+            } else if (dy === 1) {
+                maze[current.y][current.x].walls.bottom = false;
+                maze[next.y][next.x].walls.top = false;
+            } else if (dy === -1) {
+                maze[current.y][current.x].walls.top = false;
+                maze[next.y][next.x].walls.bottom = false;
+            }
+        }
+
+        function renderMaze(maze) {
+            const s = config.cellSize;
+            let d = "";
+            for (let y = 0; y < config.mazeHeight; y++) {
+                for (let x = 0; x < config.mazeWidth; x++) {
+                    const cell = maze[y][x];
+                    const cx = x * s;
+                    const cy = y * s;
+
+                    // Instead of lines, we render the "pipe" path
+                    // This creates a continuous channel look
+                    if (!cell.walls.right) {
+                        d += `M ${cx + s/2} ${cy + s/2} L ${cx + s + s/2} ${cy + s/2} `;
+                    }
+                    if (!cell.walls.bottom) {
+                        d += `M ${cx + s/2} ${cy + s/2} L ${cx + s/2} ${cy + s + s/2} `;
+                    }
+                }
+            }
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", d);
+            path.setAttribute("stroke", "var(--pipe-color)");
+            path.setAttribute("stroke-width", "40");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("fill", "none");
+            mazeLayer.appendChild(path);
+
+            const glowPath = path.cloneNode();
+            glowPath.setAttribute("stroke", "var(--pipe-glow)");
+            glowPath.setAttribute("stroke-width", "42");
+            glowPath.setAttribute("opacity", "0.1");
+            mazeLayer.appendChild(glowPath);
+        }
+
+        function initTargets() {
+            const s = config.cellSize;
+            // Spread targets far apart
+            state.targets[0].x = (config.mazeWidth - 2) * s + s/2;
+            state.targets[0].y = (config.mazeHeight - 2) * s + s/2;
+
+            state.targets[1].x = 1 * s + s/2;
+            state.targets[1].y = (config.mazeHeight - 1) * s + s/2;
+
+            state.targets[2].x = (config.mazeWidth - 1) * s + s/2;
+            state.targets[2].y = (config.mazeHeight - 1) * s + s/2;
+
+            state.targets.forEach((t, i) => {
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.id = `target-obj-${t.id}`;
+                group.classList.add('target-node');
+                
+                let el;
+                if (t.id === 'prod') {
+                    // Trophy
+                    el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z"); // Simple trophy shape
+                    el.setAttribute("fill", "var(--prod-color)");
+                } else {
+                    el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    el.setAttribute("x", "-15");
+                    el.setAttribute("y", "-15");
+                    el.setAttribute("width", "30");
+                    el.setAttribute("height", "30");
+                    el.setAttribute("rx", "4");
+                    el.setAttribute("fill", t.id === 'dev' ? 'var(--dev-color)' : 'var(--test-color)');
+                }
+                
+                el.setAttribute("filter", "url(#glow)");
+                group.appendChild(el);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.textContent = t.label;
+                text.setAttribute("y", "30");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("fill", "white");
+                text.setAttribute("font-size", "12");
+                text.setAttribute("font-weight", "bold");
+                group.appendChild(text);
+
+                group.setAttribute("transform", `translate(${t.x}, ${t.y})`);
+                targetLayer.appendChild(group);
+                
+                // Hide inactive targets initially
+                if (i > 0) group.setAttribute("opacity", "0.2");
+            });
+
+            updateUI();
+        }
+
+        function updateUI() {
+            state.targets.forEach((t, i) => {
+                const chip = document.getElementById(`status-${t.id}`);
+                const obj = document.getElementById(`target-obj-${t.id}`);
+                
+                if (t.reached) {
+                    chip.style.opacity = "0.4";
+                    chip.style.textDecoration = "line-through";
+                    chip.classList.remove('active');
+                    obj.setAttribute("opacity", "0.3");
+                } else if (i === state.currentTargetIndex) {
+                    chip.style.opacity = "1";
+                    chip.classList.add('active');
+                    obj.setAttribute("opacity", "1");
+                } else {
+                    chip.style.opacity = "0.2";
+                    obj.setAttribute("opacity", "0.2");
+                }
+            });
+        }
+
+        // Input Handling
+        window.addEventListener('keydown', e => state.keys[e.code] = true);
+        window.addEventListener('keyup', e => state.keys[e.code] = false);
+
+        function updatePlayer() {
+            let dx = 0;
+            let dy = 0;
+
+            if (state.keys['ArrowUp'] || state.keys['KeyW']) dy -= config.playerSpeed;
+            if (state.keys['ArrowDown'] || state.keys['KeyS']) dy += config.playerSpeed;
+            if (state.keys['ArrowLeft'] || state.keys['KeyA']) dx -= config.playerSpeed;
+            if (state.keys['ArrowRight'] || state.keys['KeyD']) dx += config.playerSpeed;
+
+            // Simple collision: Stay within the maze bounds
+            // Real collision within pipes would require more complex logic
+            // To keep it simple and fun, we'll allow movement but visual feedback shows the path
+            const newX = state.player.x + dx;
+            const newY = state.player.y + dy;
+
+            const limitX = config.mazeWidth * config.cellSize;
+            const limitY = config.mazeHeight * config.cellSize;
+
+            if (newX > 0 && newX < limitX) state.player.x = newX;
+            if (newY > 0 && newY < limitY) state.player.y = newY;
+
+            playerEl.setAttribute("cx", state.player.x);
+            playerEl.setAttribute("cy", state.player.y);
+
+            // Compass Logic
+            if (state.keys['Space']) {
+                const target = state.targets[state.currentTargetIndex];
+                if (target) {
+                    compassArrow.setAttribute("opacity", "0.8");
+                    compassArrow.setAttribute("x1", state.player.x);
+                    compassArrow.setAttribute("y1", state.player.y);
+                    
+                    const angle = Math.atan2(target.y - state.player.y, target.x - state.player.x);
+                    const length = 50;
+                    compassArrow.setAttribute("x2", state.player.x + Math.cos(angle) * length);
+                    compassArrow.setAttribute("y2", state.player.y + Math.sin(angle) * length);
+                }
+            } else {
+                compassArrow.setAttribute("opacity", "0");
+            }
+
+            // Check Targets
+            const currentTarget = state.targets[state.currentTargetIndex];
+            if (currentTarget) {
+                const dist = Math.hypot(state.player.x - currentTarget.x, state.player.y - currentTarget.y);
+                if (dist < 30) {
+                    currentTarget.reached = true;
+                    state.currentTargetIndex++;
+                    updateUI();
+                    
+                    if (state.currentTargetIndex >= state.targets.length) {
+                        alert("Great success! Pipeline deployed to Production!");
+                        resetGame();
+                    }
+                }
+            }
+
+            // Scrolling viewbox center on player
+            const vw = 800;
+            const vh = 600;
+            const vx = state.player.x - vw / 2;
+            const vy = state.player.y - vh / 2;
+            svg.setAttribute("viewBox", `${vx} ${vy} ${vw} ${vh}`);
+        }
+
+        function resetGame() {
+            state.currentTargetIndex = 0;
+            state.targets.forEach(t => t.reached = false);
+            state.player = { x: 50, y: 50 };
+            updateUI();
+        }
+
+        function gameLoop() {
+            updatePlayer();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize
+        state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
+        renderMaze(state.maze);
+        initTargets();
+        gameLoop();
+
+    </script>
+</body>
+</html>
