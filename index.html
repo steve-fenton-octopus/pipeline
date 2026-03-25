@@ -180,6 +180,9 @@
             <div id="status-prod" class="status-chip">
                 <span style="color: var(--prod-color)">★</span> Production
             </div>
+            <div id="level-display" class="status-chip" style="margin-top: 20px; border-color: rgba(255,255,255,0.2)">
+                Level <span id="level-num" style="margin-left: 5px; color: var(--player-glow)">1</span>
+            </div>
         </div>
 
         <div id="victory-overlay">
@@ -244,7 +247,8 @@
             currentTargetIndex: 0,
             maze: null,
             isVictory: false,
-            victoryTime: 0
+            victoryTime: 0,
+            level: 1
         };
 
         const svg = document.getElementById('game-svg');
@@ -352,17 +356,23 @@
 
         function initTargets() {
             const s = config.cellSize;
+            targetLayer.innerHTML = ""; // Clear old targets
             
+            // Filter targets based on level
+            const activeTargetCount = Math.min(state.level, 3);
+            const activeTargets = state.targets.slice(0, activeTargetCount);
+
             // Randomize locations, ensuring they are not too close to start (0,0)
             const getRandPos = () => ({
                 x: Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s/2,
                 y: Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s/2
             });
 
-            state.targets.forEach((t, i) => {
+            activeTargets.forEach((t, i) => {
                 const pos = getRandPos();
                 t.x = pos.x;
                 t.y = pos.y;
+                t.reached = false;
 
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 group.id = `target-obj-${t.id}`;
@@ -409,22 +419,36 @@
         }
 
         function updateUI() {
+            const levelEl = document.getElementById('level-num');
+            if (levelEl) levelEl.textContent = state.level;
+            const activeTargetCount = Math.min(state.level, 3);
+
             state.targets.forEach((t, i) => {
                 const chip = document.getElementById(`status-${t.id}`);
                 const obj = document.getElementById(`target-obj-${t.id}`);
                 
+                if (!chip) return;
+
+                if (i >= activeTargetCount) {
+                    chip.style.display = "none";
+                    return;
+                }
+                chip.style.display = "flex";
+
+                // Reset styles
+                chip.style.opacity = "0.2";
+                chip.style.textDecoration = "none";
+                chip.classList.remove('active');
+                if (obj) obj.setAttribute("opacity", "0.2");
+
                 if (t.reached) {
                     chip.style.opacity = "0.4";
                     chip.style.textDecoration = "line-through";
-                    chip.classList.remove('active');
-                    obj.setAttribute("opacity", "0.3");
+                    if (obj) obj.setAttribute("opacity", "0.3");
                 } else if (i === state.currentTargetIndex) {
                     chip.style.opacity = "1";
                     chip.classList.add('active');
-                    obj.setAttribute("opacity", "1");
-                } else {
-                    chip.style.opacity = "0.2";
-                    obj.setAttribute("opacity", "0.2");
+                    if (obj) obj.setAttribute("opacity", "1");
                 }
             });
         }
@@ -514,15 +538,16 @@
             }
 
             // Check Targets
+            const activeTargetCount = Math.min(state.level, 3);
             const currentTarget = state.targets[state.currentTargetIndex];
-            if (currentTarget) {
+            if (currentTarget && state.currentTargetIndex < activeTargetCount) {
                 const dist = Math.hypot(state.player.x - currentTarget.x, state.player.y - currentTarget.y);
                 if (dist < 30) {
                     currentTarget.reached = true;
                     state.currentTargetIndex++;
                     updateUI();
                     
-                    if (state.currentTargetIndex >= state.targets.length) {
+                    if (state.currentTargetIndex >= activeTargetCount) {
                         showVictory();
                     }
                 }
