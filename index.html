@@ -251,7 +251,7 @@
             </defs>
         </svg>
 
-        <div class="hint-overlay">Use Arrows to move • Hold Space for Compass • Touch & Drag to move</div>
+        <div class="hint-overlay">Use Arrows to move • Hold Space for Compass • Touch & Drag to move • Tap Octopus for Compass</div>
     </div>
 
     <script>
@@ -287,7 +287,8 @@
                 startY: 0,
                 currentX: 0,
                 currentY: 0
-            }
+            },
+            showCompass: false
         };
 
         const svg = document.getElementById('game-svg');
@@ -526,6 +527,17 @@
             state.touch.active = false;
         });
 
+        playerEl.addEventListener('touchstart', e => {
+            state.showCompass = !state.showCompass;
+            e.stopPropagation();
+        }, { passive: false });
+        
+        // Also add click for mouse users simulating touch
+        playerEl.addEventListener('click', e => {
+            state.showCompass = !state.showCompass;
+            e.stopPropagation();
+        });
+
         function canMoveTo(x, y) {
             const s = config.cellSize;
             const r = config.playerRadius;
@@ -606,7 +618,7 @@
             playerEl.setAttribute("y", state.player.y - 10);
 
             // Compass (Telescope) Logic
-            if (state.keys['Space']) {
+            if (state.keys['Space'] || state.showCompass) {
                 const target = state.targets[state.currentTargetIndex];
                 if (target) {
                     telescope.setAttribute("opacity", "1");
@@ -696,6 +708,7 @@
         function resetGame() {
             state.currentTargetIndex = 0;
             state.player = { x: 50, y: 50 };
+            state.showCompass = false;
             
             // Re-generate maze for each level
             mazeLayer.innerHTML = "";
