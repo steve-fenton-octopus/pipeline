@@ -198,7 +198,7 @@
             <g id="world-layer">
                 <g id="maze-layer"></g>
                 <g id="target-layer"></g>
-                <circle id="player" r="10" fill="url(#player-grad)" filter="url(#glow)"></circle>
+                <image id="player" href="octopus.png" width="20" height="20" filter="url(#glow)"></image>
                 <line id="compass-arrow" stroke="white" stroke-width="2" stroke-dasharray="4" opacity="0"></line>
             </g>
 
@@ -474,8 +474,8 @@
                 state.player.y += dy;
             }
 
-            playerEl.setAttribute("cx", state.player.x);
-            playerEl.setAttribute("cy", state.player.y);
+            playerEl.setAttribute("x", state.player.x - 10);
+            playerEl.setAttribute("y", state.player.y - 10);
 
             // Compass Logic
             if (state.keys['Space']) {
