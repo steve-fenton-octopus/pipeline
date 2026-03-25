@@ -229,7 +229,17 @@
                 <g id="maze-layer"></g>
                 <g id="target-layer"></g>
                 <image id="player" href="octopus.png" width="20" height="20" filter="url(#glow)"></image>
-                <line id="compass-arrow" stroke="white" stroke-width="2" stroke-dasharray="4" opacity="0"></line>
+                
+                <g id="compass-telescope" opacity="0">
+                    <!-- Thin end at player -->
+                    <rect x="0" y="-1.5" width="8" height="3" fill="#cbd5e1" rx="0.5" />
+                    <!-- Medium segment -->
+                    <rect x="7" y="-2.5" width="10" height="5" fill="#94a3b8" rx="1" />
+                    <!-- Thick end pointing away -->
+                    <rect x="16" y="-4" width="14" height="8" fill="#64748b" rx="1.5" />
+                    <!-- Objective lens -->
+                    <circle cx="30" cy="0" r="3.5" fill="cyan" opacity="0.8" filter="url(#glow)" />
+                </g>
             </g>
 
             <defs>
@@ -277,7 +287,7 @@
         const mazeLayer = document.getElementById('maze-layer');
         const targetLayer = document.getElementById('target-layer');
         const playerEl = document.getElementById('player');
-        const compassArrow = document.getElementById('compass-arrow');
+        const telescope = document.getElementById('compass-telescope');
 
         // Maze Generation (Recursive Backtracker)
         function generateMaze(width, height) {
@@ -552,21 +562,18 @@
             playerEl.setAttribute("x", state.player.x - 10);
             playerEl.setAttribute("y", state.player.y - 10);
 
-            // Compass Logic
+            // Compass (Telescope) Logic
             if (state.keys['Space']) {
                 const target = state.targets[state.currentTargetIndex];
                 if (target) {
-                    compassArrow.setAttribute("opacity", "0.8");
-                    compassArrow.setAttribute("x1", state.player.x);
-                    compassArrow.setAttribute("y1", state.player.y);
-                    
+                    telescope.setAttribute("opacity", "1");
                     const angle = Math.atan2(target.y - state.player.y, target.x - state.player.x);
-                    const length = 50;
-                    compassArrow.setAttribute("x2", state.player.x + Math.cos(angle) * length);
-                    compassArrow.setAttribute("y2", state.player.y + Math.sin(angle) * length);
+                    const deg = angle * 180 / Math.PI;
+                    // Position telescope at player center
+                    telescope.setAttribute("transform", `translate(${state.player.x}, ${state.player.y}) rotate(${deg})`);
                 }
             } else {
-                compassArrow.setAttribute("opacity", "0");
+                telescope.setAttribute("opacity", "0");
             }
 
             // Check Targets
