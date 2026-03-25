@@ -195,12 +195,16 @@
             <div id="high-score-panel" class="status-chip" style="margin-top: 10px; border-color: rgba(251, 191, 36, 0.3); font-size: 0.8rem;">
                 🏆 Best: <span id="high-score-val" style="margin-left: 5px; color: #fbbf24">0</span>
             </div>
+            <div id="current-score-panel" class="status-chip" style="margin-top: 10px; border-color: rgba(14, 165, 233, 0.3); font-size: 0.8rem;">
+                💰 Score: <span id="current-score-val" style="margin-left: 5px; color: #0ea5e9">0</span>
+            </div>
         </div>
 
         <div id="victory-overlay">
             <h1>Deployment Successful</h1>
             <p id="victory-msg">The system is stable. Production is humming.</p>
-            <div id="score-display">Score: <span id="final-score">0</span></div>
+            <div id="score-display">Level Score: <span id="final-score">0</span></div>
+            <div id="total-score-display" style="font-size: 1.2rem; color: #0ea5e9; margin-top: 10px">Total: <span id="accumulated-score">0</span></div>
             <div class="restart-hint">Press [Space] to Restart</div>
         </div>
 
@@ -263,6 +267,8 @@
             victoryTime: 0,
             level: 1,
             startTime: null,
+            levelStartTime: null,
+            score: 0,
             highScore: parseInt(localStorage.getItem('pipeline-high-score')) || 0
         };
 
@@ -440,6 +446,9 @@
             const highScoreEl = document.getElementById('high-score-val');
             if (highScoreEl) highScoreEl.textContent = state.highScore.toLocaleString();
 
+            const currentScoreEl = document.getElementById('current-score-val');
+            if (currentScoreEl) currentScoreEl.textContent = state.score.toLocaleString();
+
             const activeTargetCount = Math.min(state.level, 3);
 
             state.targets.forEach((t, i) => {
@@ -590,24 +599,36 @@
             const overlay = document.getElementById('victory-overlay');
             const h1 = overlay.querySelector('h1');
             const scoreDisplay = document.getElementById('score-display');
+            const accumulatedDisplay = document.getElementById('total-score-display');
             
+            let levelScore = 0;
             if (state.level === 3) {
                 h1.textContent = "Production Deployed!";
                 const seconds = (Date.now() - state.startTime) / 1000;
-                const score = Math.max(0, 1000000 - Math.floor(seconds * 3000));
-                
-                const finalScoreEl = document.getElementById('final-score');
-                if (finalScoreEl) finalScoreEl.textContent = score.toLocaleString();
-                if (scoreDisplay) scoreDisplay.style.display = 'block';
-                
-                if (score > state.highScore) {
-                    state.highScore = score;
-                    localStorage.setItem('pipeline-high-score', score);
-                    updateUI();
-                }
+                levelScore = Math.max(0, 1000000 - Math.floor(seconds * 3000));
+            } else if (state.level > 3) {
+                h1.textContent = `Level ${state.level} Complete`;
+                const seconds = (Date.now() - state.levelStartTime) / 1000;
+                levelScore = Math.max(0, 200000 - Math.floor(seconds * 3000));
             } else {
                 h1.textContent = `Level ${state.level} Complete`;
-                if (scoreDisplay) scoreDisplay.style.display = 'none';
+            }
+
+            if (levelScore > 0) {
+                state.score += levelScore;
+                document.getElementById('final-score').textContent = levelScore.toLocaleString();
+                document.getElementById('accumulated-score').textContent = state.score.toLocaleString();
+                scoreDisplay.style.display = 'block';
+                accumulatedDisplay.style.display = 'block';
+                
+                if (state.score > state.highScore) {
+                    state.highScore = state.score;
+                    localStorage.setItem('pipeline-high-score', state.score);
+                }
+                updateUI();
+            } else {
+                scoreDisplay.style.display = 'none';
+                accumulatedDisplay.style.display = 'none';
             }
 
             overlay.style.display = 'flex';
@@ -618,6 +639,7 @@
             const overlay = document.getElementById('victory-overlay');
             overlay.style.display = 'none';
             state.level++;
+            state.levelStartTime = Date.now();
             resetGame();
         }
 
