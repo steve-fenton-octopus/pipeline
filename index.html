@@ -572,14 +572,20 @@
             state.isVictory = false;
             const overlay = document.getElementById('victory-overlay');
             overlay.style.display = 'none';
+            state.level++;
             resetGame();
         }
 
         function resetGame() {
             state.currentTargetIndex = 0;
-            state.targets.forEach(t => t.reached = false);
             state.player = { x: 50, y: 50 };
-            updateUI();
+            
+            // Re-generate maze for each level
+            mazeLayer.innerHTML = "";
+            state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
+            renderMaze(state.maze);
+            
+            initTargets();
         }
 
         function gameLoop() {
