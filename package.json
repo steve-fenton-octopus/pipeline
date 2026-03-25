@@ -1,0 +1,10 @@
+{
+    "name": "pipeline",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "pnpm serve . -p 8080"
+    },
+    "devDependencies": {
+        "serve": "^14.2.3"
+    }
+}
