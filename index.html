@@ -298,7 +298,11 @@
 
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 group.id = `target-obj-${t.id}`;
-                group.classList.add('target-node');
+                group.setAttribute("transform", `translate(${t.x}, ${t.y})`);
+                
+                const animGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                animGroup.classList.add('target-node');
+                group.appendChild(animGroup);
                 
                 let el;
                 if (t.id === 'prod') {
@@ -317,18 +321,17 @@
                 }
                 
                 el.setAttribute("filter", "url(#glow)");
-                group.appendChild(el);
+                animGroup.appendChild(el);
 
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 text.textContent = t.label;
-                text.setAttribute("y", "30");
+                text.setAttribute("y", "35");
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("fill", "white");
                 text.setAttribute("font-size", "12");
                 text.setAttribute("font-weight", "bold");
-                group.appendChild(text);
+                animGroup.appendChild(text);
 
-                group.setAttribute("transform", `translate(${t.x}, ${t.y})`);
                 targetLayer.appendChild(group);
                 
                 if (i > 0) group.setAttribute("opacity", "0.2");
