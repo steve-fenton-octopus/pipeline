@@ -275,8 +275,6 @@ container.addEventListener('touchstart', e => {
     if (state.isVictory) return;
     const touch = e.touches[0];
     state.touch.active = true;
-    state.touch.startX = touch.clientX;
-    state.touch.startY = touch.clientY;
     state.touch.currentX = touch.clientX;
     state.touch.currentY = touch.clientY;
 }, { passive: false });
@@ -365,13 +363,15 @@ function updatePlayer() {
     if (state.keys['ArrowLeft'] || state.keys['KeyA']) dx -= config.playerSpeed;
     if (state.keys['ArrowRight'] || state.keys['KeyD']) dx += config.playerSpeed;
 
-    // Touch/Drag Input
+    // Touch/Drag Input (Relative to Screen Center)
     if (state.touch.active) {
-        const tx = state.touch.currentX - state.touch.startX;
-        const ty = state.touch.currentY - state.touch.startY;
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const tx = state.touch.currentX - centerX;
+        const ty = state.touch.currentY - centerY;
         const dist = Math.hypot(tx, ty);
-        const threshold = 10;
-
+        const threshold = 20; // Deadzone in the center
+        
         if (dist > threshold) {
             dx = (tx / dist) * config.playerSpeed;
             dy = (ty / dist) * config.playerSpeed;
