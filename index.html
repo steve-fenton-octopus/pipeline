@@ -127,10 +127,10 @@
         }
 
         #victory-overlay h1 {
-            font-size: 5rem;
-            margin: 0;
+            font-size: clamp(2rem, 10vw, 5rem);
+            margin: 0 20px;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
+            letter-spacing: 0.1em;
             font-weight: 900;
             text-shadow: 
                 0 0 10px #4ade80,
@@ -152,9 +152,10 @@
         }
 
         #victory-overlay p {
-            font-size: 1.2rem;
+            font-size: clamp(1rem, 4vw, 1.2rem);
             color: rgba(74, 222, 128, 0.6);
             margin-top: 20px;
+            padding: 0 20px;
         }
 
         #victory-overlay .restart-hint {
@@ -206,7 +207,7 @@
             <p id="victory-msg">The system is stable. Production is humming.</p>
             <div id="score-display">Level Score: <span id="final-score">0</span></div>
             <div id="total-score-display" style="font-size: 1.2rem; color: #0ea5e9; margin-top: 10px">Total: <span id="accumulated-score">0</span></div>
-            <div class="restart-hint">Press [Space] to Restart</div>
+            <div class="restart-hint">Press [Space] or Tap to Continue</div>
         </div>
 
         <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
@@ -537,6 +538,15 @@
             state.showCompass = !state.showCompass;
             e.stopPropagation();
         });
+
+        const victoryOverlay = document.getElementById('victory-overlay');
+        const handleVictoryInteraction = () => {
+            if (state.isVictory && Date.now() - state.victoryTime > 1000) {
+                hideVictory();
+            }
+        };
+        victoryOverlay.addEventListener('touchstart', handleVictoryInteraction);
+        victoryOverlay.addEventListener('click', handleVictoryInteraction);
 
         function canMoveTo(x, y) {
             const s = config.cellSize;
