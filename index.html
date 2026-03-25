@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +18,8 @@
             --ui-text: #f8fafc;
         }
 
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -49,7 +51,7 @@
             left: 20px;
             pointer-events: none;
             color: var(--ui-text);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
             z-index: 10;
         }
 
@@ -97,9 +99,20 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.8; }
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
         }
 
         .target-node {
@@ -122,8 +135,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         #victory-overlay h1 {
@@ -132,7 +150,7 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             font-weight: 900;
-            text-shadow: 
+            text-shadow:
                 0 0 10px #4ade80,
                 0 0 20px #4ade80,
                 0 0 40px #22c55e,
@@ -141,12 +159,15 @@
         }
 
         @keyframes neonPulse {
-            0%, 100% { 
-                opacity: 1; 
+
+            0%,
+            100% {
+                opacity: 1;
                 text-shadow: 0 0 10px #4ade80, 0 0 20px #4ade80, 0 0 40px #22c55e;
             }
-            50% { 
-                opacity: 0.8; 
+
+            50% {
+                opacity: 0.8;
                 text-shadow: 0 0 5px #4ade80, 0 0 10px #4ade80, 0 0 20px #22c55e;
             }
         }
@@ -175,9 +196,9 @@
             text-shadow: 0 0 10px #fbbf24;
             display: none;
         }
-
     </style>
 </head>
+
 <body>
 
     <div id="game-container">
@@ -194,10 +215,12 @@
             <div id="level-display" class="status-chip" style="margin-top: 20px; border-color: rgba(255,255,255,0.2)">
                 Level <span id="level-num" style="margin-left: 5px; color: var(--player-glow)">1</span>
             </div>
-            <div id="high-score-panel" class="status-chip" style="margin-top: 10px; border-color: rgba(251, 191, 36, 0.3); font-size: 0.8rem;">
+            <div id="high-score-panel" class="status-chip"
+                style="margin-top: 10px; border-color: rgba(251, 191, 36, 0.3); font-size: 0.8rem;">
                 🏆 Best: <span id="high-score-val" style="margin-left: 5px; color: #fbbf24">0</span>
             </div>
-            <div id="current-score-panel" class="status-chip" style="margin-top: 10px; border-color: rgba(14, 165, 233, 0.3); font-size: 0.8rem;">
+            <div id="current-score-panel" class="status-chip"
+                style="margin-top: 10px; border-color: rgba(14, 165, 233, 0.3); font-size: 0.8rem;">
                 💰 Score: <span id="current-score-val" style="margin-left: 5px; color: #0ea5e9">0</span>
             </div>
         </div>
@@ -206,7 +229,8 @@
             <h1>Deployment Successful</h1>
             <p id="victory-msg">The system is stable. Production is humming.</p>
             <div id="score-display">Level Score: <span id="final-score">0</span></div>
-            <div id="total-score-display" style="font-size: 1.2rem; color: #0ea5e9; margin-top: 10px">Total: <span id="accumulated-score">0</span></div>
+            <div id="total-score-display" style="font-size: 1.2rem; color: #0ea5e9; margin-top: 10px">Total: <span
+                    id="accumulated-score">0</span></div>
             <div class="restart-hint">Press [Space] or Tap to Continue</div>
         </div>
 
@@ -226,12 +250,12 @@
                     <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
                 </linearGradient>
             </defs>
-            
+
             <g id="world-layer">
                 <g id="maze-layer"></g>
                 <g id="target-layer"></g>
                 <image id="player" href="octopus.png" width="20" height="20" filter="url(#glow)"></image>
-                
+
                 <g id="compass-telescope" opacity="0">
                     <!-- Thin end at player -->
                     <rect x="0" y="-1.5" width="8" height="3" fill="#cbd5e1" rx="0.5" />
@@ -252,7 +276,8 @@
             </defs>
         </svg>
 
-        <div class="hint-overlay">Use Arrows to move • Hold Space for Compass • Touch & Drag to move • Tap Octopus for Compass</div>
+        <div class="hint-overlay">Use Arrows to move • Hold Space for Compass • Touch & Drag to move • Tap Octopus for
+            Compass</div>
     </div>
 
     <script>
@@ -301,7 +326,7 @@
 
         // Maze Generation (Recursive Backtracker)
         function generateMaze(width, height) {
-            const maze = Array.from({ length: height }, () => 
+            const maze = Array.from({ length: height }, () =>
                 Array.from({ length: width }, () => ({
                     visited: false,
                     walls: { top: true, right: true, bottom: true, left: true }
@@ -372,10 +397,10 @@
                     // Instead of lines, we render the "pipe" path
                     // This creates a continuous channel look
                     if (!cell.walls.right) {
-                        d += `M ${cx + s/2} ${cy + s/2} L ${cx + s + s/2} ${cy + s/2} `;
+                        d += `M ${cx + s / 2} ${cy + s / 2} L ${cx + s + s / 2} ${cy + s / 2} `;
                     }
                     if (!cell.walls.bottom) {
-                        d += `M ${cx + s/2} ${cy + s/2} L ${cx + s/2} ${cy + s + s/2} `;
+                        d += `M ${cx + s / 2} ${cy + s / 2} L ${cx + s / 2} ${cy + s + s / 2} `;
                     }
                 }
             }
@@ -398,15 +423,15 @@
         function initTargets() {
             const s = config.cellSize;
             targetLayer.innerHTML = ""; // Clear old targets
-            
+
             // Filter targets based on level
             const activeTargetCount = Math.min(state.level, 3);
             const activeTargets = state.targets.slice(0, activeTargetCount);
 
             // Randomize locations, ensuring they are not too close to start (0,0)
             const getRandPos = () => ({
-                x: Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s/2,
-                y: Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s/2
+                x: Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s / 2,
+                y: Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s / 2
             });
 
             activeTargets.forEach((t, i) => {
@@ -418,16 +443,16 @@
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 group.id = `target-obj-${t.id}`;
                 group.setAttribute("transform", `translate(${t.x}, ${t.y})`);
-                
+
                 const animGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 animGroup.classList.add('target-node');
                 group.appendChild(animGroup);
-                
+
                 let el;
                 if (t.id === 'prod') {
                     // Trophy
                     el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z"); 
+                    el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z");
                     el.setAttribute("fill", "var(--prod-color)");
                 } else {
                     el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -438,7 +463,7 @@
                     el.setAttribute("rx", "4");
                     el.setAttribute("fill", t.id === 'dev' ? 'var(--dev-color)' : 'var(--test-color)');
                 }
-                
+
                 el.setAttribute("filter", "url(#glow)");
                 animGroup.appendChild(el);
 
@@ -452,7 +477,7 @@
                 animGroup.appendChild(text);
 
                 targetLayer.appendChild(group);
-                
+
                 if (i > 0) group.setAttribute("opacity", "0.2");
             });
 
@@ -462,7 +487,7 @@
         function updateUI() {
             const levelEl = document.getElementById('level-num');
             if (levelEl) levelEl.textContent = state.level;
-            
+
             const highScoreEl = document.getElementById('high-score-val');
             if (highScoreEl) highScoreEl.textContent = state.highScore.toLocaleString();
 
@@ -474,7 +499,7 @@
             state.targets.forEach((t, i) => {
                 const chip = document.getElementById(`status-${t.id}`);
                 const obj = document.getElementById(`target-obj-${t.id}`);
-                
+
                 if (!chip) return;
 
                 if (i >= activeTargetCount) {
@@ -532,7 +557,7 @@
             state.showCompass = !state.showCompass;
             e.stopPropagation();
         }, { passive: false });
-        
+
         // Also add click for mouse users simulating touch
         playerEl.addEventListener('click', e => {
             state.showCompass = !state.showCompass;
@@ -570,12 +595,12 @@
 
             // Check segments
             // Horizontal
-            if (!cell.walls.right && x > centerX && Math.abs(y - centerY) < margin && x < (cellX + 1) * s + s/2) return true;
-            if (cellX > 0 && !state.maze[cellY][cellX-1].walls.right && x < centerX && Math.abs(y - centerY) < margin && x > (cellX - 1) * s + s/2) return true;
-            
+            if (!cell.walls.right && x > centerX && Math.abs(y - centerY) < margin && x < (cellX + 1) * s + s / 2) return true;
+            if (cellX > 0 && !state.maze[cellY][cellX - 1].walls.right && x < centerX && Math.abs(y - centerY) < margin && x > (cellX - 1) * s + s / 2) return true;
+
             // Vertical
-            if (!cell.walls.bottom && y > centerY && Math.abs(x - centerX) < margin && y < (cellY + 1) * s + s/2) return true;
-            if (cellY > 0 && !state.maze[cellY-1][cellX].walls.bottom && y < centerY && Math.abs(x - centerX) < margin && y > (cellY - 1) * s + s/2) return true;
+            if (!cell.walls.bottom && y > centerY && Math.abs(x - centerX) < margin && y < (cellY + 1) * s + s / 2) return true;
+            if (cellY > 0 && !state.maze[cellY - 1][cellX].walls.bottom && y < centerY && Math.abs(x - centerX) < margin && y > (cellY - 1) * s + s / 2) return true;
 
             return false;
         }
@@ -601,7 +626,7 @@
                 const ty = state.touch.currentY - state.touch.startY;
                 const dist = Math.hypot(tx, ty);
                 const threshold = 10;
-                
+
                 if (dist > threshold) {
                     dx = (tx / dist) * config.playerSpeed;
                     dy = (ty / dist) * config.playerSpeed;
@@ -650,7 +675,7 @@
                     currentTarget.reached = true;
                     state.currentTargetIndex++;
                     updateUI();
-                    
+
                     if (state.currentTargetIndex >= activeTargetCount) {
                         showVictory();
                     }
@@ -669,21 +694,16 @@
             state.isVictory = true;
             state.victoryTime = Date.now();
             const overlay = document.getElementById('victory-overlay');
-            const h1 = overlay.querySelector('h1');
             const scoreDisplay = document.getElementById('score-display');
             const accumulatedDisplay = document.getElementById('total-score-display');
-            
+
             let levelScore = 0;
             if (state.level === 3) {
-                h1.textContent = "Production Deployed!";
                 const seconds = (Date.now() - state.startTime) / 1000;
                 levelScore = Math.max(0, 1000000 - Math.floor(seconds * 3000));
             } else if (state.level > 3) {
-                h1.textContent = `Level ${state.level} Complete`;
                 const seconds = (Date.now() - state.levelStartTime) / 1000;
                 levelScore = Math.max(0, 200000 - Math.floor(seconds * 3000));
-            } else {
-                h1.textContent = `Level ${state.level} Complete`;
             }
 
             if (levelScore > 0) {
@@ -692,7 +712,7 @@
                 document.getElementById('accumulated-score').textContent = state.score.toLocaleString();
                 scoreDisplay.style.display = 'block';
                 accumulatedDisplay.style.display = 'block';
-                
+
                 if (state.score > state.highScore) {
                     state.highScore = state.score;
                     localStorage.setItem('pipeline-high-score', state.score);
@@ -719,12 +739,12 @@
             state.currentTargetIndex = 0;
             state.player = { x: 50, y: 50 };
             state.showCompass = false;
-            
+
             // Re-generate maze for each level
             mazeLayer.innerHTML = "";
             state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
             renderMaze(state.maze);
-            
+
             initTargets();
         }
 
@@ -741,4 +761,5 @@
 
     </script>
 </body>
+
 </html>
