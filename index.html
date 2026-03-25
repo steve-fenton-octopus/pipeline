@@ -284,17 +284,18 @@
 
         function initTargets() {
             const s = config.cellSize;
-            // Spread targets far apart
-            state.targets[0].x = (config.mazeWidth - 2) * s + s/2;
-            state.targets[0].y = (config.mazeHeight - 2) * s + s/2;
-
-            state.targets[1].x = 1 * s + s/2;
-            state.targets[1].y = (config.mazeHeight - 1) * s + s/2;
-
-            state.targets[2].x = (config.mazeWidth - 1) * s + s/2;
-            state.targets[2].y = (config.mazeHeight - 1) * s + s/2;
+            
+            // Randomize locations, ensuring they are not too close to start (0,0)
+            const getRandPos = () => ({
+                x: Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s/2,
+                y: Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s/2
+            });
 
             state.targets.forEach((t, i) => {
+                const pos = getRandPos();
+                t.x = pos.x;
+                t.y = pos.y;
+
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 group.id = `target-obj-${t.id}`;
                 group.classList.add('target-node');
@@ -303,7 +304,7 @@
                 if (t.id === 'prod') {
                     // Trophy
                     el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z"); // Simple trophy shape
+                    el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z"); 
                     el.setAttribute("fill", "var(--prod-color)");
                 } else {
                     el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -330,7 +331,6 @@
                 group.setAttribute("transform", `translate(${t.x}, ${t.y})`);
                 targetLayer.appendChild(group);
                 
-                // Hide inactive targets initially
                 if (i > 0) group.setAttribute("opacity", "0.2");
             });
 
@@ -362,6 +362,38 @@
         window.addEventListener('keydown', e => state.keys[e.code] = true);
         window.addEventListener('keyup', e => state.keys[e.code] = false);
 
+        function canMoveTo(x, y) {
+            const s = config.cellSize;
+            const r = config.playerRadius;
+            const pw = 40; // Pipe width (stroke-width)
+            const margin = (pw / 2) - r + 5; // Allow a bit of leeway
+
+            // Current cell
+            const cellX = Math.floor(x / s);
+            const cellY = Math.floor(y / s);
+
+            if (cellX < 0 || cellX >= config.mazeWidth || cellY < 0 || cellY >= config.mazeHeight) return false;
+
+            const cell = state.maze[cellY][cellX];
+            const centerX = cellX * s + s / 2;
+            const centerY = cellY * s + s / 2;
+
+            // Distance to center point
+            const distToCenter = Math.hypot(x - centerX, y - centerY);
+            if (distToCenter < margin) return true;
+
+            // Check segments
+            // Horizontal
+            if (!cell.walls.right && x > centerX && Math.abs(y - centerY) < margin && x < (cellX + 1) * s + s/2) return true;
+            if (cellX > 0 && !state.maze[cellY][cellX-1].walls.right && x < centerX && Math.abs(y - centerY) < margin && x > (cellX - 1) * s + s/2) return true;
+            
+            // Vertical
+            if (!cell.walls.bottom && y > centerY && Math.abs(x - centerX) < margin && y < (cellY + 1) * s + s/2) return true;
+            if (cellY > 0 && !state.maze[cellY-1][cellX].walls.bottom && y < centerY && Math.abs(x - centerX) < margin && y > (cellY - 1) * s + s/2) return true;
+
+            return false;
+        }
+
         function updatePlayer() {
             let dx = 0;
             let dy = 0;
@@ -371,17 +403,17 @@
             if (state.keys['ArrowLeft'] || state.keys['KeyA']) dx -= config.playerSpeed;
             if (state.keys['ArrowRight'] || state.keys['KeyD']) dx += config.playerSpeed;
 
-            // Simple collision: Stay within the maze bounds
-            // Real collision within pipes would require more complex logic
-            // To keep it simple and fun, we'll allow movement but visual feedback shows the path
-            const newX = state.player.x + dx;
-            const newY = state.player.y + dy;
+            const nextX = state.player.x + dx;
+            const nextY = state.player.y + dy;
 
-            const limitX = config.mazeWidth * config.cellSize;
-            const limitY = config.mazeHeight * config.cellSize;
-
-            if (newX > 0 && newX < limitX) state.player.x = newX;
-            if (newY > 0 && newY < limitY) state.player.y = newY;
+            if (canMoveTo(nextX, nextY)) {
+                state.player.x = nextX;
+                state.player.y = nextY;
+            } else if (canMoveTo(state.player.x + dx, state.player.y)) {
+                state.player.x += dx;
+            } else if (canMoveTo(state.player.x, state.player.y + dy)) {
+                state.player.y += dy;
+            }
 
             playerEl.setAttribute("cx", state.player.x);
             playerEl.setAttribute("cy", state.player.y);
