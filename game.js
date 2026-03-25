@@ -1,6 +1,5 @@
 /**
  * Pipeline: The Undersea Maze
- * Core Game Logic
  */
 
 // --- Configuration ---
@@ -370,8 +369,8 @@ function updatePlayer() {
         const tx = state.touch.currentX - centerX;
         const ty = state.touch.currentY - centerY;
         const dist = Math.hypot(tx, ty);
-        const threshold = 20; // Deadzone in the center
-        
+        const threshold = 20; // Dead zone in the center
+
         if (dist > threshold) {
             dx = (tx / dist) * config.playerSpeed;
             dy = (ty / dist) * config.playerSpeed;
@@ -426,7 +425,7 @@ function updatePlayer() {
         }
     }
 
-    // Viewbox Camera Follow
+    // View box Camera Follow
     const vw = 800;
     const vh = 600;
     const vx = state.player.x - vw / 2;
