@@ -10,8 +10,8 @@ const config = {
     cellSize: 100,
     playerSpeed: 5,
     playerRadius: 10,
-    mazeWidth: 20,
-    mazeHeight: 20
+    mazeWidth: 5,
+    mazeHeight: 5
 };
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -82,7 +82,7 @@ function startBackgroundMusic() {
     let index = 0;
     const playNext = () => {
         if (!state.audio.isTunePlaying) return;
-        
+
         const item = melody[index];
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
