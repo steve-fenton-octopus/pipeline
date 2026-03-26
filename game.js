@@ -555,14 +555,8 @@ function showVictory() {
     const scoreDisplay = document.getElementById('score-display');
     const accumulatedDisplay = document.getElementById('total-score-display');
 
-    let levelScore = 20000;
-    if (state.level === 3) {
-        const seconds = (Date.now() - state.startTime) / ONE_SECOND;
-        levelScore = Math.max(0, 1000000 - Math.floor(seconds * TIME_PENALTY));
-    } else if (state.level > 3) {
-        const seconds = (Date.now() - state.levelStartTime) / ONE_SECOND;
-        levelScore = Math.max(0, 500000 - Math.floor(seconds * TIME_PENALTY));
-    }
+    const seconds = (Date.now() - state.levelStartTime) / ONE_SECOND;
+    const levelScore = Math.max(0, 500000 - Math.floor(seconds * TIME_PENALTY));
 
     if (levelScore > 0) {
         state.score += levelScore;
