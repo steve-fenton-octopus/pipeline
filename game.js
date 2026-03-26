@@ -374,6 +374,9 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => state.keys[e.code] = false);
 
+// Prevent context menu (long press) on mobile
+window.addEventListener('contextmenu', e => e.preventDefault());
+
 // Touch/Drag for Movement
 container.addEventListener('touchstart', e => {
     if (audioCtx.state === 'suspended') audioCtx.resume();
