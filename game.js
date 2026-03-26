@@ -597,6 +597,9 @@ function resetGame() {
     state.player = { x: 50, y: 50 };
     state.showCompass = false;
 
+    config.mazeWidth = Math.min(25, 4 + state.level);
+    config.mazeHeight = Math.min(25, 4 + state.level);
+
     mazeLayer.innerHTML = "";
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
     renderMaze(state.maze);
@@ -611,6 +614,8 @@ function gameLoop() {
 
 // --- Initialize ---
 function init() {
+    config.mazeWidth = Math.min(25, 4 + state.level);
+    config.mazeHeight = Math.min(25, 4 + state.level);
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
     renderMaze(state.maze);
     initTargets();
