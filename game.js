@@ -605,8 +605,65 @@ function resetGame() {
 
 function gameLoop() {
     updatePlayer();
+    updateSharks();
     requestAnimationFrame(gameLoop);
 }
+
+// --- Shark Shadows ---
+const sharks = [];
+
+function initSharks() {
+    const shadowLayer = document.getElementById('shadow-layer');
+    if (!shadowLayer) return;
+    for (let i = 0; i < 3; i++) {
+        createShark(shadowLayer);
+    }
+}
+
+function createShark(layer) {
+    const shark = document.createElementNS(SVG_NS, "g");
+    
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M 140 0 Q 120 -12 90 -15 L 70 -45 L 75 -15 Q 40 -12 15 -4 L -10 -25 L 5 0 L -10 25 L 15 4 Q 40 12 75 15 L 70 45 L 90 15 Q 120 12 140 0 Z");
+    path.setAttribute("fill", "#020617");
+    path.setAttribute("opacity", "0.4");
+    path.setAttribute("filter", "url(#shadow-blur)");
+    shark.appendChild(path);
+    
+    layer.appendChild(shark);
+    
+    const isRight = Math.random() > 0.5;
+    const angle = isRight ? 0 : Math.PI;
+    const x = Math.random() * config.mazeWidth * config.cellSize;
+    const speed = 0.3 + Math.random() * 0.4;
+    const scale = 1.5 + Math.random() * 1.5;
+    
+    sharks.push({ el: shark, x, angle, speed, scale });
+}
+
+function updateSharks() {
+    const vw = 800;
+    const vh = 600;
+    const vx = state.player.x - vw / 2;
+    const vy = state.player.y - vh / 2;
+
+    sharks.forEach((s, idx) => {
+        s.x += Math.cos(s.angle) * s.speed;
+        
+        const boundsMinX = vx - 800;
+        const boundsMaxX = vx + vw + 800;
+        
+        if (s.x < boundsMinX) s.x = boundsMaxX;
+        if (s.x > boundsMaxX) s.x = boundsMinX;
+
+        // Position just below the middle of the camera view
+        const targetY = vy + (vh / 2) + 100 + (idx * 60 - 60);
+
+        const deg = s.angle * 180 / Math.PI;
+        s.el.setAttribute("transform", `translate(${s.x}, ${targetY}) rotate(${deg}) scale(${s.scale})`);
+    });
+}
+
 
 // --- Visual Effects ---
 function initBubbles() {
@@ -616,7 +673,7 @@ function initBubbles() {
     for (let i = 0; i < bubbleCount; i++) {
         setTimeout(() => createBubble(container), Math.random() * 5000);
     }
-    
+
     setInterval(() => {
         createBubble(container);
     }, 400);
@@ -626,23 +683,23 @@ function createBubble(container) {
     const wrapper = document.createElement('div');
     wrapper.className = 'bubble-container';
     wrapper.style.left = `${Math.random() * 100}vw`;
-    
+
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    
+
     const size = Math.random() * 15 + 5;
     bubble.style.width = `${size}px`;
     bubble.style.height = `${size}px`;
-    
+
     const duration = Math.random() * 6 + 4;
     bubble.style.animationDuration = `${duration}s`;
-    
+
     wrapper.style.animationDuration = `${Math.random() * 3 + 2}s`;
     wrapper.style.animationDelay = `-${Math.random() * 3}s`;
-    
+
     wrapper.appendChild(bubble);
     container.appendChild(wrapper);
-    
+
     setTimeout(() => {
         if (wrapper.parentNode) {
             wrapper.parentNode.removeChild(wrapper);
@@ -657,6 +714,7 @@ function init() {
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
     renderMaze(state.maze);
     initTargets();
+    initSharks();
     initBubbles();
     gameLoop();
 }

@@ -58,9 +58,13 @@
                     <stop offset="50%" style="stop-color:#475569;stop-opacity:1" />
                     <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
                 </linearGradient>
+                <filter id="shadow-blur">
+                    <feGaussianBlur stdDeviation="15" />
+                </filter>
             </defs>
 
             <g id="world-layer">
+                <g id="shadow-layer"></g>
                 <g id="maze-layer"></g>
                 <g id="target-layer"></g>
                 <image id="player" href="octopus.gif" width="20" height="20"></image>
