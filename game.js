@@ -268,10 +268,17 @@ function initTargets() {
     const activeTargetCount = Math.min(state.level, 3);
     const activeTargets = state.targets.slice(0, activeTargetCount);
 
-    const getRandPos = () => ({
-        x: Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s / 2,
-        y: Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s / 2
-    });
+    const usedPositions = new Set();
+    const getRandPos = () => {
+        let rx, ry, key;
+        do {
+            rx = Math.floor(Math.random() * (config.mazeWidth - 2) + 1) * s + s / 2;
+            ry = Math.floor(Math.random() * (config.mazeHeight - 2) + 1) * s + s / 2;
+            key = `${rx},${ry}`;
+        } while (usedPositions.has(key));
+        usedPositions.add(key);
+        return { x: rx, y: ry };
+    };
 
     activeTargets.forEach((t, i) => {
         const pos = getRandPos();
