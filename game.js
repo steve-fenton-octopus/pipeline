@@ -123,6 +123,7 @@ const state = {
         { id: 'test', label: 'Test', reached: false, x: 0, y: 0 },
         { id: 'prod', label: 'Production', reached: false, x: 0, y: 0 }
     ],
+    hazards: [],
     currentTargetIndex: 0,
     maze: null,
     isVictory: false,
@@ -295,7 +296,7 @@ function initTargets() {
         group.appendChild(animGroup);
 
         const colorVar = t.id === 'dev' ? 'var(--dev-color)' : (t.id === 'test' ? 'var(--test-color)' : 'var(--prod-color)');
-        
+
         const bgGlow = document.createElementNS(SVG_NS, "circle");
         bgGlow.setAttribute("r", "20");
         bgGlow.setAttribute("fill", colorVar);
@@ -312,13 +313,13 @@ function initTargets() {
         let emoji = '🐟';
         if (t.id === 'test') emoji = '🐡';
         if (t.id === 'prod') emoji = '🦈';
-        
+
         let el = document.createElementNS(SVG_NS, "text");
         el.textContent = emoji;
         el.setAttribute("font-size", "22");
         el.setAttribute("text-anchor", "middle");
         el.setAttribute("dominant-baseline", "central");
-        el.setAttribute("y", "2"); 
+        el.setAttribute("y", "2");
         animGroup.appendChild(el);
 
         const text = document.createElementNS(SVG_NS, "text");
@@ -617,12 +618,81 @@ function resetGame() {
     renderMaze(state.maze);
 
     initTargets();
+    initHazards();
 }
 
 function gameLoop() {
     updatePlayer();
+    updateHazards();
     updateSharks();
     requestAnimationFrame(gameLoop);
+}
+
+// --- Hazards ---
+function initHazards() {
+    state.hazards = [];
+    const layer = document.getElementById('target-layer');
+    if (!layer) return;
+
+    const s = config.cellSize;
+
+    // Start jellyfish in the bottom-right corner of the maze
+    const x = (config.mazeWidth - 1) * s + s / 2;
+    const y = (config.mazeHeight - 1) * s + s / 2;
+
+    const hazard = document.createElementNS(SVG_NS, "g");
+    const el = document.createElementNS(SVG_NS, "text");
+    el.textContent = '🪼';
+    el.setAttribute("font-size", "26");
+    el.setAttribute("text-anchor", "middle");
+    el.setAttribute("dominant-baseline", "central");
+
+    el.style.animation = "pulse 2s infinite ease-in-out";
+
+    hazard.appendChild(el);
+    layer.appendChild(hazard);
+
+    state.hazards.push({ el: hazard, x, y, speed: 0.7 });
+}
+
+function updateHazards() {
+    if (state.isVictory) return;
+
+    for (let i = state.hazards.length - 1; i >= 0; i--) {
+        const h = state.hazards[i];
+
+        const dx = state.player.x - h.x;
+        const dy = state.player.y - h.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > 0) {
+            const dirX = (dx / dist) * h.speed;
+            const dirY = (dy / dist) * h.speed;
+
+            const nextX = h.x + dirX;
+            const nextY = h.y + dirY;
+
+            if (canMoveTo(nextX, nextY)) {
+                h.x = nextX;
+                h.y = nextY;
+            } else if (canMoveTo(h.x + dirX, h.y)) {
+                h.x += dirX;
+            } else if (canMoveTo(h.x, h.y + dirY)) {
+                h.y += dirY;
+            }
+        }
+
+        h.el.setAttribute("transform", `translate(${h.x}, ${h.y})`);
+
+        if (dist < config.playerRadius + 15) {
+            h.el.remove();
+            state.hazards.splice(i, 1);
+
+            state.player.x = 50;
+            state.player.y = 50;
+            playSwoosh();
+        }
+    }
 }
 
 // --- Shark Shadows ---
@@ -730,6 +800,7 @@ function init() {
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
     renderMaze(state.maze);
     initTargets();
+    initHazards();
     initSharks();
     initBubbles();
     gameLoop();
