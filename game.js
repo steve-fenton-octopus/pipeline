@@ -287,22 +287,31 @@ function initTargets() {
         animGroup.classList.add('target-node');
         group.appendChild(animGroup);
 
-        let el;
-        if (t.id === 'prod') {
-            el = document.createElementNS(SVG_NS, "path");
-            el.setAttribute("d", "M -10 -10 L 10 -10 L 10 -2 L 0 10 L -10 -2 Z");
-            el.setAttribute("fill", "var(--prod-color)");
-        } else {
-            el = document.createElementNS(SVG_NS, "rect");
-            el.setAttribute("x", "-15");
-            el.setAttribute("y", "-15");
-            el.setAttribute("width", "30");
-            el.setAttribute("height", "30");
-            el.setAttribute("rx", "4");
-            el.setAttribute("fill", t.id === 'dev' ? 'var(--dev-color)' : 'var(--test-color)');
-        }
+        const colorVar = t.id === 'dev' ? 'var(--dev-color)' : (t.id === 'test' ? 'var(--test-color)' : 'var(--prod-color)');
+        
+        const bgGlow = document.createElementNS(SVG_NS, "circle");
+        bgGlow.setAttribute("r", "20");
+        bgGlow.setAttribute("fill", colorVar);
+        bgGlow.setAttribute("opacity", "0.4");
+        bgGlow.setAttribute("filter", "url(#glow)");
+        animGroup.appendChild(bgGlow);
 
-        el.setAttribute("filter", "url(#glow)");
+        const bgCore = document.createElementNS(SVG_NS, "circle");
+        bgCore.setAttribute("r", "14");
+        bgCore.setAttribute("fill", colorVar);
+        bgCore.setAttribute("opacity", "0.6");
+        animGroup.appendChild(bgCore);
+
+        let emoji = '🐟';
+        if (t.id === 'test') emoji = '🐡';
+        if (t.id === 'prod') emoji = '🦈';
+        
+        let el = document.createElementNS(SVG_NS, "text");
+        el.textContent = emoji;
+        el.setAttribute("font-size", "22");
+        el.setAttribute("text-anchor", "middle");
+        el.setAttribute("dominant-baseline", "central");
+        el.setAttribute("y", "2"); 
         animGroup.appendChild(el);
 
         const text = document.createElementNS(SVG_NS, "text");
