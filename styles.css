@@ -230,8 +230,8 @@ svg {
     position: absolute;
     bottom: -50px;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: radial-gradient(circle at 30% 30%, rgba(186, 230, 253, 0.8), rgba(125, 211, 252, 0.15) 60%, rgba(125, 211, 252, 0) 100%);
+    border: 1px solid rgba(125, 211, 252, 0.4);
     pointer-events: none;
     z-index: 1;
     animation: floatUp 8s infinite linear;
