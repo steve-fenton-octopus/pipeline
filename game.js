@@ -641,12 +641,15 @@ function initHazards() {
     const y = (config.mazeHeight - 1) * s + s / 2;
 
     const hazard = document.createElementNS(SVG_NS, "g");
+
     const el = document.createElementNS(SVG_NS, "text");
     el.textContent = '🪼';
     el.setAttribute("font-size", "26");
     el.setAttribute("text-anchor", "middle");
     el.setAttribute("dominant-baseline", "central");
 
+    // Rotate Hue to turn the blue emoji into a bright pink one
+    el.style.filter = "hue-rotate(130deg) saturate(150%)";
     el.style.animation = "pulse 2s infinite ease-in-out";
 
     hazard.appendChild(el);
