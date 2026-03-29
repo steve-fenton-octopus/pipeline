@@ -46,7 +46,7 @@ function playTaDa() {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime + start);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+        gain.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + start + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(audioCtx.currentTime + start);
@@ -90,7 +90,7 @@ function startBackgroundMusic() {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(item.note, audioCtx.currentTime);
 
-        gain.gain.setValueAtTime(0.03, audioCtx.currentTime); // Very quiet
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); // Very quiet
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + item.duration);
 
         osc.connect(gain);
@@ -148,7 +148,6 @@ const state = {
 
 // --- DOM Elements ---
 const svg = document.getElementById('game-svg');
-const worldLayer = document.getElementById('world-layer');
 const mazeLayer = document.getElementById('maze-layer');
 const targetLayer = document.getElementById('target-layer');
 const playerEl = document.getElementById('player');
