@@ -1,4 +1,7 @@
-import NOTES from './notes.js';
+import { generateMaze } from './maze.js';
+import { audioState, resumeAudioContext, playSwoosh, playTaDa, startBackgroundMusic, stopBackgroundMusic } from './sound.js';
+import { canMoveTo } from './physics.js';
+import { initBubbles } from './effects.js';
 
 /**
  * Pipeline: The Undersea Maze
@@ -17,102 +20,6 @@ const config = {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const ONE_SECOND = 1000;
 const TIME_PENALTY = 3000;
-
-// --- Audio System ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-function playSwoosh() {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-}
-
-function playTaDa() {
-    const playNote = (freq, start, duration) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + start);
-        gain.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + start + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime + start);
-        osc.stop(audioCtx.currentTime + start + duration);
-    };
-
-    playNote(NOTES.C5, 0, 0.2);
-    playNote(NOTES.E5, 0.15, 0.5);
-}
-
-function startBackgroundMusic() {
-    if (state.audio.isTunePlaying) return;
-    state.audio.isTunePlaying = true;
-
-    const duration = 0.4;
-
-    const melody = [
-        { note: NOTES.C3, duration: duration },
-        { note: NOTES.D4, duration: duration },
-        { note: NOTES.E4, duration: duration },
-        { note: NOTES.G4, duration: duration },
-        { note: NOTES.E4, duration: duration },
-        { note: NOTES.D4, duration: duration },
-
-        { note: NOTES.D3, duration: duration },
-        { note: NOTES.D4, duration: duration },
-        { note: NOTES.E4, duration: duration },
-        { note: NOTES.G4, duration: duration },
-        { note: NOTES.E4, duration: duration },
-        { note: NOTES.B2, duration: duration }
-    ];
-
-    let index = 0;
-    const playNext = () => {
-        if (!state.audio.isTunePlaying) return;
-
-        const item = melody[index];
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(item.note, audioCtx.currentTime);
-
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); // Very quiet
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + item.duration);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + item.duration);
-
-        index = (index + 1) % melody.length;
-        state.audio.timeoutId = setTimeout(playNext, item.duration * 1000);
-    };
-
-    playNext();
-}
-
-function stopBackgroundMusic() {
-    state.audio.isTunePlaying = false;
-    if (state.audio.timeoutId) {
-        clearTimeout(state.audio.timeoutId);
-        state.audio.timeoutId = null;
-    }
-}
 
 // --- Game State ---
 const state = {
@@ -140,11 +47,7 @@ const state = {
         currentX: 0,
         currentY: 0
     },
-    showCompass: false,
-    audio: {
-        isTunePlaying: false,
-        timeoutId: null
-    }
+    showCompass: false
 };
 
 // --- DOM Elements ---
@@ -155,71 +58,6 @@ const playerEl = document.getElementById('player');
 const telescope = document.getElementById('compass-telescope');
 const container = document.getElementById('game-container');
 const victoryOverlay = document.getElementById('victory-overlay');
-
-// --- Maze Generation (Recursive Backtracker) ---
-
-/**
- * Generates a maze using recursive backtracking algorithm.
- */
-function generateMaze(width, height) {
-    const maze = Array.from({ length: height }, () =>
-        Array.from({ length: width }, () => ({
-            visited: false,
-            walls: { top: true, right: true, bottom: true, left: true }
-        }))
-    );
-
-    const stack = [];
-    const startNode = { x: 0, y: 0 };
-    maze[0][0].visited = true;
-    stack.push(startNode);
-
-    while (stack.length > 0) {
-        const current = stack[stack.length - 1];
-        const neighbors = getUnvisitedNeighbors(current, maze, width, height);
-
-        if (neighbors.length > 0) {
-            const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-            removeWall(current, next, maze);
-            maze[next.y][next.x].visited = true;
-            stack.push(next);
-        } else {
-            stack.pop();
-        }
-    }
-    return maze;
-}
-
-function getUnvisitedNeighbors(node, maze, width, height) {
-    const neighbors = [];
-    const { x, y } = node;
-
-    if (y > 0 && !maze[y - 1][x].visited) neighbors.push({ x, y: y - 1, dir: 'top' });
-    if (x < width - 1 && !maze[y][x + 1].visited) neighbors.push({ x: x + 1, y, dir: 'right' });
-    if (y < height - 1 && !maze[y + 1][x].visited) neighbors.push({ x, y: y + 1, dir: 'bottom' });
-    if (x > 0 && !maze[y][x - 1].visited) neighbors.push({ x: x - 1, y, dir: 'left' });
-
-    return neighbors;
-}
-
-function removeWall(current, next, maze) {
-    const dx = next.x - current.x;
-    const dy = next.y - current.y;
-
-    if (dx === 1) {
-        maze[current.y][current.x].walls.right = false;
-        maze[next.y][next.x].walls.left = false;
-    } else if (dx === -1) {
-        maze[current.y][current.x].walls.left = false;
-        maze[next.y][next.x].walls.right = false;
-    } else if (dy === 1) {
-        maze[current.y][current.x].walls.bottom = false;
-        maze[next.y][next.x].walls.top = false;
-    } else if (dy === -1) {
-        maze[current.y][current.x].walls.top = false;
-        maze[next.y][next.x].walls.bottom = false;
-    }
-}
 
 // --- Rendering ---
 
@@ -385,7 +223,7 @@ function updateUI() {
 
 // Keyboard
 window.addEventListener('keydown', e => {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    resumeAudioContext();
     state.keys[e.code] = true;
 });
 window.addEventListener('keyup', e => state.keys[e.code] = false);
@@ -395,7 +233,7 @@ window.addEventListener('contextmenu', e => e.preventDefault());
 
 // Touch/Drag for Movement
 container.addEventListener('touchstart', e => {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    resumeAudioContext();
     if (state.isVictory) return;
     const touch = e.touches[0];
     state.touch.active = true;
@@ -434,38 +272,6 @@ const handleVictoryInteraction = () => {
 };
 victoryOverlay.addEventListener('touchstart', handleVictoryInteraction);
 victoryOverlay.addEventListener('click', handleVictoryInteraction);
-
-// --- Movement and Collision ---
-
-/**
- * Checks if the player can move to the given SVG coordinates.
- */
-function canMoveTo(x, y) {
-    const s = config.cellSize;
-    const r = config.playerRadius;
-    const pw = 40;
-    const margin = (pw / 2) - r + 5;
-
-    const cellX = Math.floor(x / s);
-    const cellY = Math.floor(y / s);
-
-    if (cellX < 0 || cellX >= config.mazeWidth || cellY < 0 || cellY >= config.mazeHeight) return false;
-
-    const cell = state.maze[cellY][cellX];
-    const centerX = cellX * s + s / 2;
-    const centerY = cellY * s + s / 2;
-
-    const distToCenter = Math.hypot(x - centerX, y - centerY);
-    if (distToCenter < margin) return true;
-
-    if (!cell.walls.right && x > centerX && Math.abs(y - centerY) < margin && x < (cellX + 1) * s + s / 2) return true;
-    if (cellX > 0 && !state.maze[cellY][cellX - 1].walls.right && x < centerX && Math.abs(y - centerY) < margin && x > (cellX - 1) * s + s / 2) return true;
-
-    if (!cell.walls.bottom && y > centerY && Math.abs(x - centerX) < margin && y < (cellY + 1) * s + s / 2) return true;
-    if (cellY > 0 && !state.maze[cellY - 1][cellX].walls.bottom && y < centerY && Math.abs(x - centerX) < margin && y > (cellY - 1) * s + s / 2) return true;
-
-    return false;
-}
 
 /**
  * Updates player position based on input and checks for target collisions.
@@ -514,12 +320,12 @@ function updatePlayer() {
         state.startTime = Date.now();
     }
 
-    if (canMoveTo(nextX, nextY)) {
+    if (canMoveTo(nextX, nextY, state.maze, config)) {
         state.player.x = nextX;
         state.player.y = nextY;
-    } else if (canMoveTo(state.player.x + dx, state.player.y)) {
+    } else if (canMoveTo(state.player.x + dx, state.player.y, state.maze, config)) {
         state.player.x += dx;
-    } else if (canMoveTo(state.player.x, state.player.y + dy)) {
+    } else if (canMoveTo(state.player.x, state.player.y + dy, state.maze, config)) {
         state.player.y += dy;
     }
 
@@ -566,6 +372,18 @@ function updatePlayer() {
 
 // --- Level and Game Life Cycle ---
 
+const MAX_MAZE_SIZE = 25;
+const BASE_MAZE_SIZE = 5;
+
+function getMazeSize(level) {
+    return Math.min(MAX_MAZE_SIZE, BASE_MAZE_SIZE + Math.floor((level - 1) / 2));
+}
+
+function calculateScore(levelStartTime) {
+    const seconds = (Date.now() - levelStartTime) / ONE_SECOND;
+    return Math.max(0, 500000 - Math.floor(seconds * TIME_PENALTY));
+}
+
 function showVictory() {
     state.isVictory = true;
     state.victoryTime = Date.now();
@@ -574,8 +392,7 @@ function showVictory() {
     const scoreDisplay = document.getElementById('score-display');
     const accumulatedDisplay = document.getElementById('total-score-display');
 
-    const seconds = (Date.now() - state.levelStartTime) / ONE_SECOND;
-    const levelScore = Math.max(0, 500000 - Math.floor(seconds * TIME_PENALTY));
+    const levelScore = calculateScore(state.levelStartTime);
 
     if (levelScore > 0) {
         state.score += levelScore;
@@ -610,8 +427,8 @@ function resetGame() {
     state.player = { x: 50, y: 50 };
     state.showCompass = false;
 
-    config.mazeWidth = Math.min(25, 4 + state.level);
-    config.mazeHeight = Math.min(25, 4 + state.level);
+    config.mazeWidth = getMazeSize(state.level);
+    config.mazeHeight = getMazeSize(state.level);
 
     mazeLayer.innerHTML = "";
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
@@ -675,12 +492,12 @@ function updateHazards() {
             const nextX = h.x + dirX;
             const nextY = h.y + dirY;
 
-            if (canMoveTo(nextX, nextY)) {
+if (canMoveTo(nextX, nextY, state.maze, config)) {
                 h.x = nextX;
                 h.y = nextY;
-            } else if (canMoveTo(h.x + dirX, h.y)) {
+            } else if (canMoveTo(h.x + dirX, h.y, state.maze, config)) {
                 h.x += dirX;
-            } else if (canMoveTo(h.x, h.y + dirY)) {
+            } else if (canMoveTo(h.x, h.y + dirY, state.maze, config)) {
                 h.y += dirY;
             }
         }
@@ -754,52 +571,10 @@ function updateSharks() {
 }
 
 
-// --- Visual Effects ---
-function initBubbles() {
-    const container = document.getElementById('game-container');
-    const bubbleCount = 15;
-
-    for (let i = 0; i < bubbleCount; i++) {
-        setTimeout(() => createBubble(container), Math.random() * 5000);
-    }
-
-    setInterval(() => {
-        createBubble(container);
-    }, 400);
-}
-
-function createBubble(container) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'bubble-container';
-    wrapper.style.left = `${Math.random() * 100}vw`;
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-
-    const size = Math.random() * 15 + 5;
-    bubble.style.width = `${size}px`;
-    bubble.style.height = `${size}px`;
-
-    const duration = Math.random() * 6 + 4;
-    bubble.style.animationDuration = `${duration}s`;
-
-    wrapper.style.animationDuration = `${Math.random() * 3 + 2}s`;
-    wrapper.style.animationDelay = `-${Math.random() * 3}s`;
-
-    wrapper.appendChild(bubble);
-    container.appendChild(wrapper);
-
-    setTimeout(() => {
-        if (wrapper.parentNode) {
-            wrapper.parentNode.removeChild(wrapper);
-        }
-    }, duration * 1000 + 100);
-}
-
 // --- Initialize ---
 function init() {
-    config.mazeWidth = Math.min(25, 4 + state.level);
-    config.mazeHeight = Math.min(25, 4 + state.level);
+    config.mazeWidth = getMazeSize(state.level);
+    config.mazeHeight = getMazeSize(state.level);
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
     renderMaze(state.maze);
     initTargets();
