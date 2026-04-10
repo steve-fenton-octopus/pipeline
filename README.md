@@ -2,6 +2,11 @@
 
 A browser-based underwater maze game. Guide your Octopus through the maze to navigate the depths and reach production!
 
+[Play now!](https://pipeline.stevefenton.co.uk)
+
+<img width="1920" height="1048" alt="An Octopus swimming through an underwater maze to collect tokens and avoid the angry jellyfish." src="https://github.com/user-attachments/assets/2ad9dd28-3905-4f2e-b1b0-527a7a8f0602" />
+
+
 ## Controls
 
 Keyboard
