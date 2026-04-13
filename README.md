@@ -6,6 +6,7 @@ A browser-based underwater maze game. Guide your Octopus through the maze to nav
 
 <img width="1920" height="1048" alt="An Octopus swimming through an underwater maze to collect tokens and avoid the angry jellyfish." src="https://github.com/user-attachments/assets/2ad9dd28-3905-4f2e-b1b0-527a7a8f0602" />
 
+You'll encounter the jellyfish of hazards as you make your way through the maze. Try to avoid the hazards as your next DNS failure will send you back to the start. It will also increase your *change failure rate*. The goal is to score points with short *lead time for changes*, but can you achieve fast flow if you don't watch out for the hazards?
 
 ## Controls
 
