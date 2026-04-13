@@ -40,6 +40,7 @@ const state = {
     levelStartTime: null,
     score: 0,
     highScore: parseInt(localStorage.getItem('pipeline-high-score')) || 0,
+    levelHistory: JSON.parse(sessionStorage.getItem('pipeline-level-history') || '[]'),
     touch: {
         active: false,
         startX: 0,
@@ -48,7 +49,8 @@ const state = {
         currentY: 0
     },
     showCompass: false,
-    isHazardPopover: false
+    isHazardPopover: false,
+    levelCaughtByHazard: false
 };
 
 // --- DOM Elements ---
@@ -386,11 +388,48 @@ function calculateScore(levelStartTime) {
     return Math.max(0, 500000 - Math.floor(seconds * TIME_PENALTY));
 }
 
+function recordLevelStats() {
+    const completionTimeMs = Date.now() - state.levelStartTime;
+    const record = {
+        level: state.level,
+        completionTimeMs,
+        caughtByHazard: state.levelCaughtByHazard
+    };
+    // Replace any existing record for this level (e.g. after a reset mid-level)
+    const idx = state.levelHistory.findIndex(r => r.level === state.level);
+    if (idx >= 0) {
+        state.levelHistory[idx] = record;
+    } else {
+        state.levelHistory.push(record);
+    }
+    sessionStorage.setItem('pipeline-level-history', JSON.stringify(state.levelHistory));
+}
+
 function showVictory() {
     state.isVictory = true;
     state.victoryTime = Date.now();
     stopBackgroundMusic();
     playTaDa();
+    recordLevelStats();
+
+    // --- DORA Metrics ---
+    const history = state.levelHistory;
+    const thisLevel = history.find(r => r.level === state.level);
+    if (thisLevel) {
+        const WINDOW = 5;
+        console.log("history", history);
+        const recent = history.slice(-WINDOW);
+
+        const leadTimeSecs = (thisLevel.completionTimeMs / ONE_SECOND).toFixed(1);
+        const avgMs = recent.reduce((sum, r) => sum + r.completionTimeMs, 0) / recent.length;
+        const avgSecs = (avgMs / ONE_SECOND).toFixed(1);
+        const failureRate = Math.round((recent.filter(r => r.caughtByHazard).length / recent.length) * 100);
+
+        document.getElementById('dora-lead-time').textContent = leadTimeSecs;
+        document.getElementById('dora-avg-lead-time').textContent = avgSecs;
+        document.getElementById('dora-failure-rate').textContent = failureRate;
+    }
+
     const scoreDisplay = document.getElementById('score-display');
     const accumulatedDisplay = document.getElementById('total-score-display');
 
@@ -429,6 +468,7 @@ function resetGame() {
     state.player = { x: 50, y: 50 };
     state.showCompass = false;
     state.isHazardPopover = false;
+    state.levelCaughtByHazard = false;
 
     config.mazeWidth = getMazeSize(state.level);
     config.mazeHeight = getMazeSize(state.level);
@@ -558,6 +598,7 @@ function updateHazards() {
             state.hazards.splice(i, 1);
             playSwoosh();
 
+            state.levelCaughtByHazard = true;
             showHazardPopover(() => {
                 state.player.x = 50;
                 state.player.y = 50;
@@ -624,6 +665,10 @@ function updateSharks() {
 
 // --- Initialize ---
 function init() {
+    if (state.level === 1) {
+        state.levelHistory = [];
+    }
+    state.levelStartTime = Date.now();
     config.mazeWidth = getMazeSize(state.level);
     config.mazeHeight = getMazeSize(state.level);
     state.maze = generateMaze(config.mazeWidth, config.mazeHeight);
