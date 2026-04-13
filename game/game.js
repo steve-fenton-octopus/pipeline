@@ -47,7 +47,8 @@ const state = {
         currentX: 0,
         currentY: 0
     },
-    showCompass: false
+    showCompass: false,
+    isHazardPopover: false
 };
 
 // --- DOM Elements ---
@@ -277,6 +278,7 @@ victoryOverlay.addEventListener('click', handleVictoryInteraction);
  * Updates player position based on input and checks for target collisions.
  */
 function updatePlayer() {
+    if (state.isHazardPopover) return;
     if (state.isVictory) {
         if (state.keys['Space'] && Date.now() - state.victoryTime > ONE_SECOND) {
             hideVictory();
@@ -426,6 +428,7 @@ function resetGame() {
     state.currentTargetIndex = 0;
     state.player = { x: 50, y: 50 };
     state.showCompass = false;
+    state.isHazardPopover = false;
 
     config.mazeWidth = getMazeSize(state.level);
     config.mazeHeight = getMazeSize(state.level);
@@ -443,6 +446,52 @@ function gameLoop() {
     updateHazards();
     updateSharks();
     requestAnimationFrame(gameLoop);
+}
+
+// --- Hazard Popover ---
+
+const HAZARD_NAMES = [
+    'Manual security review',
+    'DNS problem',
+    'Change approval board delayed',
+    'Environment variables missing',
+    'SSL certificate expired',
+    'Flaky integration test',
+    'Database migration failed',
+    'Rollback required',
+    'Config drift detected',
+    'Port already in use',
+    'Rate limit exceeded',
+    'Memory leak in production',
+    'Dependency deprecation warning',
+    'Firewall rule blocking traffic',
+    'Scheduled downtime window',
+];
+
+const hazardPopover = document.getElementById('hazard-popover');
+const hazardPopoverName = document.getElementById('hazard-popover-name');
+let hazardPopoverTimeout = null;
+
+function showHazardPopover(onDismiss) {
+    state.isHazardPopover = true;
+    const name = HAZARD_NAMES[Math.floor(Math.random() * HAZARD_NAMES.length)];
+    hazardPopoverName.textContent = name;
+
+    // Clear any in-flight hide
+    if (hazardPopoverTimeout) clearTimeout(hazardPopoverTimeout);
+    hazardPopover.classList.remove('hiding');
+    hazardPopover.classList.add('visible');
+
+    // Start hiding after 2 s, then clean up and call onDismiss
+    hazardPopoverTimeout = setTimeout(() => {
+        hazardPopover.classList.remove('visible');
+        hazardPopover.classList.add('hiding');
+        hazardPopoverTimeout = setTimeout(() => {
+            hazardPopover.classList.remove('hiding');
+            state.isHazardPopover = false;
+            onDismiss();
+        }, 400); // match hazardFadeOut duration
+    }, 2000);
 }
 
 // --- Hazards ---
@@ -492,7 +541,7 @@ function updateHazards() {
             const nextX = h.x + dirX;
             const nextY = h.y + dirY;
 
-if (canMoveTo(nextX, nextY, state.maze, config)) {
+            if (canMoveTo(nextX, nextY, state.maze, config)) {
                 h.x = nextX;
                 h.y = nextY;
             } else if (canMoveTo(h.x + dirX, h.y, state.maze, config)) {
@@ -507,10 +556,12 @@ if (canMoveTo(nextX, nextY, state.maze, config)) {
         if (dist < config.playerRadius + 15) {
             h.el.remove();
             state.hazards.splice(i, 1);
-
-            state.player.x = 50;
-            state.player.y = 50;
             playSwoosh();
+
+            showHazardPopover(() => {
+                state.player.x = 50;
+                state.player.y = 50;
+            });
         }
     }
 }
