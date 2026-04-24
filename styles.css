@@ -39,6 +39,7 @@ svg {
     width: 100%;
     height: 100%;
     cursor: none;
+    will-change: contents;
 }
 
 #ui-layer {
@@ -290,6 +291,7 @@ svg {
         opacity: 0;
         transform: translate(-50%, calc(-50% - 20px)) scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
@@ -297,13 +299,26 @@ svg {
 }
 
 @keyframes hazardFadeOut {
-    from { opacity: 1; }
-    to   { opacity: 0; pointer-events: none; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        pointer-events: none;
+    }
 }
 
 @keyframes jellyFloat {
-    0%, 100% { transform: translateY(0px); }
-    50%       { transform: translateY(-6px); }
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
 }
 
 #hazard-popover {
@@ -323,7 +338,7 @@ svg {
     min-width: 280px;
     box-shadow:
         0 0 30px rgba(244, 114, 182, 0.25),
-        0 8px 40px rgba(0,0,0,0.6);
+        0 8px 40px rgba(0, 0, 0, 0.6);
 }
 
 #hazard-popover.visible {
@@ -369,4 +384,36 @@ svg {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(244, 114, 182, 0.45);
+}
+
+/* ─── Mobile performance overrides ───────────────────────────────────
+   backdrop-filter: blur() forces a GPU compositing layer per element and is
+   repainted on every frame on iOS Safari. When JS detects a touch device it
+   adds .reduce-effects to <body>; here we swap blur for solid backgrounds
+   that look almost identical but are an order of magnitude cheaper to render.
+   Desktop browsers never receive .reduce-effects so they keep full visuals.
+   ─────────────────────────────────────────────────────────────────────────── */
+.reduce-effects .status-chip {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(10, 18, 38, 0.92);
+}
+
+.reduce-effects #victory-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(10, 18, 38, 0.96);
+}
+
+.reduce-effects .dora-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.reduce-effects #hazard-popover {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(15, 5, 30, 0.95);
 }
