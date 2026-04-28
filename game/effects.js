@@ -1,6 +1,6 @@
-import { isMobile } from './device.js';
+import { isLowPerformance } from './device.js';
 
-const BUBBLE_CONFIG = isMobile
+const BUBBLE_CONFIG = isLowPerformance
     ? { initialCount: 5,  spawnInterval: 1500, maxLive: 12, minSize: 6,  maxSize: 14 }
     : { initialCount: 15, spawnInterval: 400,  maxLive: Infinity, minSize: 5, maxSize: 20 };
 

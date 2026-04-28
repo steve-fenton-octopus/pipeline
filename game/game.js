@@ -2,7 +2,7 @@ import { generateMaze } from './maze.js';
 import { audioState, resumeAudioContext, playSwoosh, playTaDa, startBackgroundMusic, stopBackgroundMusic } from './sound.js';
 import { canMoveTo } from './physics.js';
 import { initBubbles } from './effects.js';
-import { isMobile } from './device.js';
+import { isLowPerformance } from './device.js';
 
 /**
  * Pipeline: The Undersea Maze
@@ -22,10 +22,9 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const ONE_SECOND = 1000;
 const TIME_PENALTY = 3000;
 
-// Detect touch/mobile devices — used to skip expensive GPU effects that
-// perform poorly on iOS Safari (SVG filters, backdrop-filter, etc.)
-// Detection lives in device.js; imported above.
-if (isMobile) document.body.classList.add('reduce-effects');
+// Skip expensive GPU effects on devices that score below the rendering
+// performance threshold (measured by a canvas benchmark in device.js).
+if (isLowPerformance) document.body.classList.add('reduce-effects');
 
 // --- Game State ---
 const state = {
@@ -148,8 +147,8 @@ function initTargets() {
         bgGlow.setAttribute("r", "20");
         bgGlow.setAttribute("fill", colorVar);
         bgGlow.setAttribute("opacity", "0.4");
-        // Skip SVG feGaussianBlur filter on mobile — it's CPU-rendered on iOS
-        if (!isMobile) bgGlow.setAttribute("filter", "url(#glow)");
+        // Skip SVG feGaussianBlur filter on low-perf devices — it's CPU-rendered on iOS
+        if (!isLowPerformance) bgGlow.setAttribute("filter", "url(#glow)");
         animGroup.appendChild(bgGlow);
 
         const bgCore = document.createElementNS(SVG_NS, "circle");
@@ -636,10 +635,10 @@ function createShark(layer) {
     const path = document.createElementNS(SVG_NS, "path");
     path.setAttribute("d", "M 140 0 Q 120 -12 90 -15 L 70 -45 L 75 -15 Q 40 -12 15 -4 L -10 -25 L 5 0 L -10 25 L 15 4 Q 40 12 75 15 L 70 45 L 90 15 Q 120 12 140 0 Z");
     path.setAttribute("fill", "#020617");
-    // Slightly more opaque on mobile to compensate for no blur softening
-    path.setAttribute("opacity", isMobile ? "0.25" : "0.4");
-    // Skip Gaussian blur filter on mobile — expensive on iOS and re-composited every frame
-    if (!isMobile) path.setAttribute("filter", "url(#shadow-blur)");
+    // Slightly more opaque on low-perf devices to compensate for no blur softening
+    path.setAttribute("opacity", isLowPerformance ? "0.25" : "0.4");
+    // Skip Gaussian blur filter on low-perf devices — expensive and re-composited every frame
+    if (!isLowPerformance) path.setAttribute("filter", "url(#shadow-blur)");
     shark.appendChild(path);
 
     layer.appendChild(shark);
