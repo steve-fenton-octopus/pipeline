@@ -16,14 +16,18 @@ const FRAME_SAMPLES = 36;
 const SKIP_FIRST_FRAMES = 4;
 
 /** Below this ops/ms (after readback stress), treat as low tier. */
-const SYNC_LOW_OPS_PER_MS = 12;
+const SYNC_LOW_OPS_PER_MS = 8;
 
-/** Frame budget: ~60fps target is 16.7ms; allow modest slack for variance. */
-const FRAME_MEAN_MS_BAD = 22;
-const FRAME_P95_MS_BAD = 30;
-const FRAME_MAX_MS_BAD = 48;
-const FRAME_JANK_RATIO_BAD = 0.18;
-const JANK_THRESHOLD_MS = 26;
+/**
+ * Frame budget thresholds (rAF deltas). High-refresh / ProMotion and short GC
+ * spikes can exceed naive 60 Hz targets without real gameplay judder — keep
+ * these loose enough that capable desktops stay on full fidelity.
+ */
+const FRAME_MEAN_MS_BAD = 30;
+const FRAME_P95_MS_BAD = 42;
+const FRAME_MAX_MS_BAD = 72;
+const FRAME_JANK_RATIO_BAD = 0.28;
+const JANK_THRESHOLD_MS = 34;
 
 function syncCanvasScore() {
     const canvas = document.createElement('canvas');
@@ -108,7 +112,8 @@ function frameStressTick(ctx, frameIndex) {
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.fillRect(40, 40, 176, 176);
     ctx.shadowBlur = 0;
-    if (f % 6 === 0) ctx.getImageData(0, 0, 2, 2);
+    // Occasional readback; too frequent adds synthetic jank on fast GPUs.
+    if (f % 12 === 0) ctx.getImageData(0, 0, 2, 2);
 }
 
 function analyzeFrameDeltas(deltas) {
@@ -195,12 +200,13 @@ async function assessDevice() {
 
 const profile = await assessDevice();
 
-export const isLowPerformance = profile.isLowPerformance;
+/** Result of the canvas + frame benchmark only (no user override). */
+export const deviceLowPerformance = profile.isLowPerformance;
 
 if (import.meta.env?.DEV || location.hostname === 'localhost') {
     const { syncOpsPerMs, syncLow, hwLow, frameStats } = profile;
     console.debug('[device]', {
-        fidelity: isLowPerformance ? 'LOW' : 'HIGH',
+        fidelity: deviceLowPerformance ? 'LOW' : 'HIGH',
         syncOpsPerMs: syncOpsPerMs.toFixed(2),
         syncLow,
         hwLow,

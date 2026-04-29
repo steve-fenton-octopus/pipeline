@@ -1,23 +1,54 @@
-import { isLowPerformance } from './device.js';
+import { effectiveLowPerformance } from './perf-mode.js';
 
-const BUBBLE_CONFIG = isLowPerformance
-    ? { initialCount: 5,  spawnInterval: 1500, maxLive: 12, minSize: 6,  maxSize: 14 }
-    : { initialCount: 15, spawnInterval: 400,  maxLive: Infinity, minSize: 5, maxSize: 20 };
+function getBubbleConfig() {
+    return effectiveLowPerformance()
+        ? {
+              initialCount: 5,
+              spawnInterval: 1500,
+              maxLive: 12,
+              minSize: 6,
+              maxSize: 14,
+          }
+        : {
+              initialCount: 15,
+              spawnInterval: 400,
+              maxLive: Infinity,
+              minSize: 5,
+              maxSize: 20,
+          };
+}
+
+let bubbleSpawnIntervalId = null;
+
+export function refreshBubbleSpawner() {
+    const container = document.getElementById('game-container');
+    if (!container) return;
+
+    if (bubbleSpawnIntervalId !== null) {
+        clearInterval(bubbleSpawnIntervalId);
+        bubbleSpawnIntervalId = null;
+    }
+
+    const cfg = getBubbleConfig();
+    bubbleSpawnIntervalId = setInterval(() => {
+        const c = getBubbleConfig();
+        const live = container.querySelectorAll('.bubble-container').length;
+        if (live < c.maxLive) {
+            createBubble(container);
+        }
+    }, cfg.spawnInterval);
+}
 
 export function initBubbles() {
     const container = document.getElementById('game-container');
+    if (!container) return;
 
-    for (let i = 0; i < BUBBLE_CONFIG.initialCount; i++) {
+    const cfg = getBubbleConfig();
+    for (let i = 0; i < cfg.initialCount; i++) {
         setTimeout(() => createBubble(container), Math.random() * 5000);
     }
 
-    setInterval(() => {
-        // Don't spawn if we're already at the live cap (mobile safeguard)
-        const live = container.querySelectorAll('.bubble-container').length;
-        if (live < BUBBLE_CONFIG.maxLive) {
-            createBubble(container);
-        }
-    }, BUBBLE_CONFIG.spawnInterval);
+    refreshBubbleSpawner();
 }
 
 function createBubble(container) {
@@ -28,7 +59,7 @@ function createBubble(container) {
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
 
-    const { minSize, maxSize } = BUBBLE_CONFIG;
+    const { minSize, maxSize } = getBubbleConfig();
     const size = Math.random() * (maxSize - minSize) + minSize;
     bubble.style.width = `${size}px`;
     bubble.style.height = `${size}px`;

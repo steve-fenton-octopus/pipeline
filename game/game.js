@@ -1,8 +1,12 @@
 import { generateMaze } from './maze.js';
 import { audioState, resumeAudioContext, playSwoosh, playTaDa, startBackgroundMusic, stopBackgroundMusic } from './sound.js';
 import { canMoveTo } from './physics.js';
-import { initBubbles } from './effects.js';
-import { isLowPerformance } from './device.js';
+import { initBubbles, refreshBubbleSpawner } from './effects.js';
+import {
+    applyPerfModeToDocument,
+    cyclePerfOverride,
+    effectiveLowPerformance,
+} from './perf-mode.js';
 
 /**
  * Pipeline: The Undersea Maze
@@ -22,9 +26,8 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const ONE_SECOND = 1000;
 const TIME_PENALTY = 3000;
 
-// Skip expensive GPU effects on devices that score below the rendering
-// performance threshold (measured by a canvas benchmark in device.js).
-if (isLowPerformance) document.body.classList.add('reduce-effects');
+// Perf mode: auto benchmark + optional user override (see perf-mode.js).
+applyPerfModeToDocument();
 
 // --- Game State ---
 const state = {
@@ -66,6 +69,48 @@ const playerEl = document.getElementById('player');
 const telescope = document.getElementById('compass-telescope');
 const container = document.getElementById('game-container');
 const victoryOverlay = document.getElementById('victory-overlay');
+
+function syncPerfSensitiveSvg() {
+    const low = effectiveLowPerformance();
+
+    const shadowLayer = document.getElementById('shadow-layer');
+    if (shadowLayer) {
+        shadowLayer.querySelectorAll('.shark-shadow').forEach((path) => {
+            path.setAttribute('opacity', low ? '0.25' : '0.4');
+            if (low) path.removeAttribute('filter');
+            else path.setAttribute('filter', 'url(#shadow-blur)');
+        });
+    }
+
+    targetLayer.querySelectorAll('.target-glow').forEach((circle) => {
+        if (low) circle.removeAttribute('filter');
+        else circle.setAttribute('filter', 'url(#glow)');
+    });
+}
+
+function initPerfChip() {
+    const chip = document.getElementById('perf-mode-indicator');
+    if (!chip) return;
+
+    chip.setAttribute('role', 'button');
+    chip.tabIndex = 0;
+
+    const activate = (e) => {
+        e.stopPropagation();
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.type === 'keydown') e.preventDefault();
+        cyclePerfOverride();
+        applyPerfModeToDocument();
+        syncPerfSensitiveSvg();
+        syncSharkCount();
+        refreshBubbleSpawner();
+    };
+
+    chip.addEventListener('click', activate);
+    chip.addEventListener('keydown', activate);
+}
+
+initPerfChip();
 
 // --- Rendering ---
 
@@ -144,11 +189,12 @@ function initTargets() {
         const colorVar = t.id === 'dev' ? 'var(--dev-color)' : (t.id === 'test' ? 'var(--test-color)' : 'var(--prod-color)');
 
         const bgGlow = document.createElementNS(SVG_NS, "circle");
+        bgGlow.classList.add('target-glow');
         bgGlow.setAttribute("r", "20");
         bgGlow.setAttribute("fill", colorVar);
         bgGlow.setAttribute("opacity", "0.4");
-        // Skip SVG feGaussianBlur filter on low-perf devices — it's CPU-rendered on iOS
-        if (!isLowPerformance) bgGlow.setAttribute("filter", "url(#glow)");
+        // Skip SVG feGaussianBlur filter on low-perf — CPU-heavy on some platforms
+        if (!effectiveLowPerformance()) bgGlow.setAttribute("filter", "url(#glow)");
         animGroup.appendChild(bgGlow);
 
         const bgCore = document.createElementNS(SVG_NS, "circle");
@@ -624,7 +670,21 @@ const sharks = [];
 function initSharks() {
     const shadowLayer = document.getElementById('shadow-layer');
     if (!shadowLayer) return;
-    for (let i = 0; i < 3; i++) {
+    const count = effectiveLowPerformance() ? 1 : 3;
+    for (let i = 0; i < count; i++) {
+        createShark(shadowLayer);
+    }
+}
+
+function syncSharkCount() {
+    const shadowLayer = document.getElementById('shadow-layer');
+    if (!shadowLayer) return;
+    const want = effectiveLowPerformance() ? 1 : 3;
+    while (sharks.length > want) {
+        const s = sharks.pop();
+        s.el.remove();
+    }
+    while (sharks.length < want) {
         createShark(shadowLayer);
     }
 }
@@ -633,12 +693,12 @@ function createShark(layer) {
     const shark = document.createElementNS(SVG_NS, "g");
 
     const path = document.createElementNS(SVG_NS, "path");
+    path.classList.add('shark-shadow');
     path.setAttribute("d", "M 140 0 Q 120 -12 90 -15 L 70 -45 L 75 -15 Q 40 -12 15 -4 L -10 -25 L 5 0 L -10 25 L 15 4 Q 40 12 75 15 L 70 45 L 90 15 Q 120 12 140 0 Z");
     path.setAttribute("fill", "#020617");
-    // Slightly more opaque on low-perf devices to compensate for no blur softening
-    path.setAttribute("opacity", isLowPerformance ? "0.25" : "0.4");
-    // Skip Gaussian blur filter on low-perf devices — expensive and re-composited every frame
-    if (!isLowPerformance) path.setAttribute("filter", "url(#shadow-blur)");
+    const low = effectiveLowPerformance();
+    path.setAttribute("opacity", low ? "0.25" : "0.4");
+    if (!low) path.setAttribute("filter", "url(#shadow-blur)");
     shark.appendChild(path);
 
     layer.appendChild(shark);

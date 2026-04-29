@@ -57,16 +57,45 @@ svg {
     bottom: 20px;
     left: 20px;
     z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     margin-bottom: 0;
     font-size: 0.8rem;
-    border-color: rgba(251, 191, 36, 0.35);
     color: var(--player-glow);
-    display: none;
+    display: flex;
+    border-color: rgba(255, 255, 255, 0.2);
+    user-select: none;
+}
+
+#perf-mode-indicator:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(15, 23, 42, 0.92);
+}
+
+#perf-mode-indicator:focus-visible {
+    outline: 2px solid var(--player-glow);
+    outline-offset: 3px;
+}
+
+#perf-mode-indicator .perf-chip-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+#perf-mode-indicator .perf-chip-main {
+    font-weight: 600;
+}
+
+#perf-mode-indicator .perf-chip-tag {
+    font-weight: 500;
+    opacity: 0.82;
+    color: rgba(248, 250, 252, 0.72);
 }
 
 body.reduce-effects #perf-mode-indicator {
-    display: flex;
+    border-color: rgba(251, 191, 36, 0.35);
 }
 
 .status-chip {
