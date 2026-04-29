@@ -52,6 +52,23 @@ svg {
     z-index: 10;
 }
 
+#perf-mode-indicator {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 10;
+    pointer-events: none;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    border-color: rgba(251, 191, 36, 0.35);
+    color: var(--player-glow);
+    display: none;
+}
+
+body.reduce-effects #perf-mode-indicator {
+    display: flex;
+}
+
 .status-chip {
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(8px);
@@ -386,12 +403,10 @@ svg {
     color: rgba(244, 114, 182, 0.45);
 }
 
-/* ─── Mobile performance overrides ───────────────────────────────────
-   backdrop-filter: blur() forces a GPU compositing layer per element and is
-   repainted on every frame on iOS Safari. When JS detects a touch device it
-   adds .reduce-effects to <body>; here we swap blur for solid backgrounds
-   that look almost identical but are an order of magnitude cheaper to render.
-   Desktop browsers never receive .reduce-effects so they keep full visuals.
+/* ─── Performance overrides ───────────────────────────────────────────────
+   backdrop-filter: blur() forces extra compositing work. When game/device.js
+   marks the session as low-performance it adds .reduce-effects to <body>;
+   we swap blur for solid backgrounds that read similarly but cost far less.
    ─────────────────────────────────────────────────────────────────────────── */
 .reduce-effects .status-chip {
     backdrop-filter: none;
