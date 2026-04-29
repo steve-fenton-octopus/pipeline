@@ -38,3 +38,72 @@ You can run the game easily on your local machine using `pnpm`.
    ```
 
 4. Open the local address provided in your terminal (usually `http://localhost:8080` or similar) in your web browser to play the game!
+
+## Game internals
+
+### High-level structure
+
+```mermaid
+flowchart TB
+    subgraph host["Hosting"]
+        serve["pnpm serve (static)"]
+    end
+
+    subgraph browser["Browser"]
+        html["index.html"]
+        css["styles.css"]
+        svg["SVG #game-svg — maze, targets, player, effects"]
+        module["game/game.js (ES module entry)"]
+    end
+
+    serve --> html
+    html --> css
+    html --> module
+    html --> svg
+    module -->|"reads/writes"| svg
+```
+
+### JavaScript modules
+
+```mermaid
+flowchart LR
+    game["game.js\n(orchestrator, loop, UI, level logic)"]
+
+    maze["maze.js\n(generateMaze)"]
+    physics["physics.js\n(canMoveTo)"]
+    sound["sound.js\n(AudioContext, SFX, music)"]
+    notes["notes.js\n(note frequencies)"]
+    effects["effects.js\n(bubbles)"]
+    perf["perf-mode.js\n(auto + override)"]
+    device["device.js\n(device heuristics)"]
+
+    game --> maze
+    game --> physics
+    game --> sound
+    game --> effects
+    game --> perf
+    sound --> notes
+    effects --> perf
+    perf --> device
+```
+
+### Runtime responsibilities
+
+```mermaid
+flowchart TB
+    inputs["Input: keyboard / touch / perf chip"]
+    gameLoop["game.js: requestAnimationFrame loop"]
+    mazeGen["maze.js → maze grid"]
+    collide["physics.js: wall collision"]
+    audio["sound.js: Web Audio"]
+    fx["effects.js: DOM bubble animations"]
+    perfTier["perf-mode + device: low/high effects"]
+
+    inputs --> gameLoop
+    gameLoop --> mazeGen
+    gameLoop --> collide
+    gameLoop --> audio
+    gameLoop --> fx
+    perfTier --> gameLoop
+    perfTier --> fx
+```
